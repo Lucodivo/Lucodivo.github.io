@@ -30,18 +30,26 @@
     </a>
   </div>
 
-  <!-- Page Content -->
-  <div class="container">
-
-    <h1 class="my-4">Graphics Dev Blog</h1>
-
+  <div class="container"><!-- Page Content -->
+    <h1 class="my-4">Dev Blog</h1>
     <div class="row">
-
-      <!-- Blog Entries Column -->
-      <div class="col-md-12">
-
-        <!-- Blog Post -->
-        <div class="card mb-4">
+      <div class="col-md-12"><!-- Blog Entries Column -->
+        <div class="card mb-4"><!-- Blog Post -->
+          <img class="card-img-top" src="images/jni_marshalling_performance/jni_marshalling_performance_title_image.png">
+          <div class="card-body">
+            <h2 class="card-title">JNI Marshalling Performance: Single Round Trip</h2>
+            <p class="card-text">This article focuses on one question related to potential performance gains. When researching the JNI, you will quickly be warned that marshalling data across the JNI is non-negligible. Essentially, communication between the native side (C++) and the managed side (Kotlin) is expensive. The programmer should not only reduce *how much* data they send to one another but should also reduce *how often* they send data to one another. My question here is the simplest I could think of that would provide helpful insight to the cost of marshalling data across the JNI.</p>
+            <a href="jni_marshalling_performance.html" class="btn btn-primary blogpostbutton">Read More &rarr;</a>
+          </div>
+          <div class="card-footer text-muted">
+            Posted on March 25, 2024 by <a href="about.html">Connor A. Haskins</a>
+          </div>
+        </div>
+      </div>
+    </div> <!-- /.row -->
+    <div class="row">
+      <div class="col-md-12"><!-- Blog Entries Column -->
+        <div class="card mb-4"><!-- Blog Post -->
           <img class="card-img-top" src="images/menger_sponge/menger_spong_title_image.png">
           <div class="card-body">
             <h2 class="card-title">Ray Marching: Menger Sponge Breakdown</h2>
@@ -52,24 +60,13 @@
             Posted on June 15, 2020 by <a href="about.html">Connor A. Haskins</a>
           </div>
         </div>
-
       </div>
-
-    </div>
-    <!-- /.row -->
-
-  </div>
-  <!-- /.container -->
-
-  <!-- Footer -->
-<!--  <footer class="py-5 bg-dark">-->
-<!--  </footer>-->
+    </div> <!-- /.row -->
+  </div><!-- /.container -->
 
   <!-- Bootstrap core JavaScript -->
   <script src="vendor/jquery/jquery.min.js"></script>
   <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
   <script src="script/dropdown.js"></script>
-
 </body>
-
 </html>
