@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 
-<head>
+  <head>
 
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -12,1160 +12,1553 @@
 
     <!-- Bootstrap core CSS -->
     <link href="vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="/images/favicon.png">
 
     <!-- Custom styles for this template -->
     <link href="css/blog-post.css" rel="stylesheet">
     <link href="css/custom.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 
-</head>
+  </head>
 
-<body>
+  <body padding-bottom="50px">
 
-<div class="topnav" id="myTopnav">
-    <a href="index.html" class="active">Connor A. Haskins</a>
-    <a href="blog.html">Blog</a>
-    <a href="index.html">About</a>
-    <a href="javascript:void(0);" class="icon" onclick="myFunction()">
+    <div class="topnav" id="myTopnav">
+      <a href="index.html" class="active">Connor A. Haskins</a>
+      <a href="blog.html">Blog</a>
+      <a href="index.html">About</a>
+      <a href="javascript:void(0);" class="icon" onclick="myFunction()">
         <i class="fa fa-bars"></i>
-    </a>
-</div>
+      </a>
+    </div>
 
-<!-- Page Content -->
-<div class="container">
-
-    <div class="row">
-
+    <!-- Page Content -->
+    <div class="container">
+      <div class="row">
         <!-- Post Content Column -->
         <div class="col-lg-12">
-
-            <!-- Title -->
-            <h1 class="mt-4">Ray Marching: Menger Sponge Breakdown</h1>
-
-            <!-- Author -->
-            <p class="lead">
-                by
-                <a href="index.html">Connor A. Haskins</a>
-            </p>
-
-            <hr>
-
-            <!-- Date/Time -->
-            <p>Posted on June 15th, 2020</p>
-
-            <hr>
-
-            <!-- Preview Image -->
-            <img class="img-fluid rounded" src="images/menger_sponge/menger_spong_title_image.png"
-                 alt="menger sponge rendered with ray marching">
-
-            <hr>
-
-            <!-- Post Content -->
-            <p>Before we start there is a <a href="https://www.shadertoy.com/view/3lKSWh">Shadertoy demo</a> of the many
-                things that are discussed in this article. This demo can be viewed in any browser. Simply comment out
-                the associated “dist =” code line in the distPosToScene() function and then click “alt + enter”
-                (cmd+enter in mac) to compile and see the results. Please feel free to play around with it! Anything you
-                change will not be saved. :)</p>
-
-            <p>Disclaimer: I do attempt to explain most things but I will not be explaining some concepts like vectors
-                or coordinate systems. If you notice anything that went unexplained, please use your favorite search
-                engine or the resources at the end of this article to find other wonderful education media on the
-                topics.</p>
-
-            <p class="lead">Terminology:</p>
-            <p>
-            <ul>
-                <li>vec3: A data type in GLSL that is simply an array of 3 floating point values. This data type is
-                    often used to represent things like points, vectors, or color values (RGB).
-                </li>
-                <li>“halfwidth”: A value equal to half of some width. Often we will find that it’s more convenient to
-                    deal with half the width of an object being rendered. This is analogous to using the radius
-                    (halfwidth) of a sphere as opposed to the diameter (width).
-                </li>
-            </ul>
-            </p>
-
-            <p class="lead">What is ray marching?</p>
-
-            <p> There are two very popular methods to render 3D scenes. Rasterization has historically been the most
-                popular method used for real-time graphics (ex: video games). In short, rasterization is a technique
-                that projects 3D models, usually composed of 3D triangles, onto a 2D plane. Another popular method of
-                rendering is ray-tracing. This method has historically been used for rendering scenes that require a
-                greater amount of realism and are not required to be rendered in real-time (ex: cinematic visual
-                effects). Ray-tracing is a type of ray-casting that determines the intersection point between an
-                infinitely long ray shooting out of a pixel and some 3D model that exists in the scene. Again, these 3D
-                models are usually composed of 3D triangles. When compared with rasterization, ray-tracing works in a
-                sort of reverse order. Rasterization starts with trying to draw a 3D model and determines which pixels
-                that 3D model influences. Ray-tracing starts with a pixel and determines which 3D model influences it.
-
-                <br><br>What we will discuss in this article is a third rendering method. A flavor of ray-casting known
-                as ray
-                marching. There are still rays being shot out into the world from each pixel of your screen. But whereas
-                ray tracing performs a one-off calculation in determining the intersection between an infinite ray and a
-                3D model, ray marching takes a more iterative approach. The rays start at the camera’s position and a
-                function is used to determine how far that ray could move in any direction before hitting something. Ray
-                marching uses what are called SDFs (signed distance fields) to calculate the distance from a point in
-                space to some object defined by the SDF. These functions do NOT determine the distance a ray needs to
-                travel before it hits an object, as these functions do not take the direction of the ray into
-                consideration. They simply determine the distance between the ray’s current position and the closest
-                point of an object. So although it doesn’t give us that exact distance, it does tell us a distance that
-                we can safely travel without running into anything. And as stated before, ray marching is an iterative
-                process. We acquire a safe distance to travel, we travel that distance, and repeat. When the distance
-                returned by an SDF (the distance between the rays current position and an object defined by the SDF)
-                falls under some specified threshold (ex: 0.02 units), we will consider that a hit and do the lighting
-                calculations for the surface.
-                <br><br>The ray marching algorithm must also handle two edge cases:
-            <ol>
-                <li>To avoid infinite looping, we should cap off the rays after travelling some maximum specified
-                    distance (ex:
-                    100 units). This is due to some rays that may never hit an object in our scene.
-                </li>
-                <li>In order for ray marching to perform within a reasonable amount of time, we should also consider a
-                    maximum
-                    amount of iterations we are willing to calculate (ex: 60 iterations). A great example for where
-                    iterations
-                    could get costly is an SDF that represents a long flat plane (wall) and a ray that is running
-                    parallel to
-                    the wall just outside of our specified hit distance. Each iteration the ray will inch forward in
-                    very small
-                    steps, taking a long time to reach our maximum specified distance.
-                </li>
-            </ol>
-            The ray marching algorithm considers both of these scenarios a “miss” and no lighting calculations will be
-            performed as no surface was hit. In both of these edge cases, we make a trade off for performance. The ray
-            may have hit if we let it travel 1 unit further and the ray may have hit if we had performed just one more
-            iteration. Take note of this when specifying your maximum distances and iterations.
-
-            <br><br>To summarize, the algorithm of ray marching looks something like this:
-
-            <br>(a) Calculate the distance to the object(s) using the ray’s current position and the SDF
-            <br>(b) If that distance is smaller than the specified hit distance, we consider that a hit. We exit the
-            algorithm
-            and perform lighting calculations for the surface that was hit.
-            <br>(c) Move the ray forward the distance calculated in step
-            <br>(d) If the total distance the ray has travelled exceeds the maximum specified distance, we consider that
-            a miss
-            and exit the algorithm.
-            <br>(e) If the next iteration would exceed the specified maximum number of iterations, we consider that a
-            miss and
-            exit the algorithm.
-            <br>(f) Go back to step (a), using the new position of our ray
-            </p>
-
-            <p class="lead">SDF to point</p>
-
-            <p>
-                Before we determine the distance between a point and an object, let’s first remind ourselves how to
-                find the distance between two points.
-                <br><br>Let’s say you have two points, A and B. When you subtract A from B, you get a vector that can
-                “move” point A to point B. It’s possible this sounds unintuitive to you, so here’s a simple way to
-                solidify this concept. Let’s now say that you have two integers +3 and +7. When you subtract +3 from +7,
-                you get the integer +4. This integer is capable of taking +3 to +7. Following this same logic, when you
-                subtract point (-4, -2) from point (-1, 2) you get the vector <3, 4>. Which is a vector that can “move”
-                point (-4, -2) to point (-1, 2). It is all addition and subtraction.
-
-                <br><br><img class="img-fluid" src="images/menger_sponge/image21.png"
-                             alt="graph showing vector pointing from point 2 to point 1 through subtraction">
-
-                <br><br>Now the distance between two points is fairly simple. If you have a vector &lt;x,y> that takes
-                point A
-                to point B, then the distance between point A and point B is simply the length of that vector. If you
-                were to draw the vector &lt;x,y>, you’d see that the vector can be viewed as a hypotenuse of a right
-                triangle in which one of our sides is of length x and the other is of length y.
-                <br><br>So to get the length of a vector, we simply use the pythagorean theorem, a² + b² = c².
-
-                <br>The length of a 2D vector &lt;x,y> is equal to sqrt(x² + y²)
-                <br>The length of a 3D vector &lt;x,y,z> is equal to sqrt(x² + y² + z²)
-                <br>This pattern can also be extended for all dimensions
-
-                <br><br>To put it all together, the distance between points A and B can be acquired by calculating the
-                length of the resulting vector when you subtract A from B. (Subtracting B from A acquires the same
-                result. Although the vector will be pointing in the opposite direction, its length is the same.)
-                The SDF to a point looks something like this:
-            <pre><code>
-float sdPoint(vec3 rayPosition, vec3 pointPosition) {
-    vec3 pointToRay = rayPosition - pointPosition;
-    float distanceToPoint= sqrt(pointToRay.x * pointToRay.x +
-                                pointToRay.y * pointToRay.y +
-                                pointToRay.z * pointToRay.z);
-    return distanceToPoint;
-}
-                </code></pre>
-            </p>
-
-            <p class="lead">SDF to sphere</p>
-
-            <p>
-                To acquire the distance from a point to a sphere, we start by calculating the distance between the point
-                and the center of the sphere (another point). When travelling to the center of a sphere, you must first
-                travel to the surface of the sphere and then further travel the sphere's radius to finally reach the
-                center point. So if we want a distance to a sphere, we first get the distance to the center point and
-                then subtract the length of the radius, taking us back to the surface of the sphere.
-                <br><br>The SDF to a sphere looks something like this:
-            <pre><code>
-float sdSphere(vec3 rayPosition, vec3 sphereCenterPosition, float radius) {
-    vec3 centerToRay = rayPosition - sphereCenterPosition;
-    float distToCenter = length(centerToRay); // length() gets the length of a vector using pythagorean theorem
-    return distToCenter - radius;
-}
-                </code></pre>
-
-            <a href="https://www.shadertoy.com/view/3lKSWh">[DEMO: Sphere Method #1]</a>
-            <br>NOTE: Another name for ray marching is “sphere tracing”. You can think of an SDF as a function that
-            gives the radius for a sphere that is centered at the ray’s position and just barely touches the object or
-            scene represented by the SDF.
-            </p>
-
-            <p class="lead">Translation</p>
-
-            <p>
-                Let’s learn about some ways that you can manipulate objects through the use of our rays and SDFs.
-                <br><br>Translation: One thing I left out while going over the SDF of a sphere is that SDFs will often
-                define the distance to an object that is centered at the origin. The way you position that object into
-                your scene is to simply subtract the object’s desired position from your ray’s position and sending the
-                ray’s new position to the SDF. By subtracting the object’s desired position, we are transforming the
-                ray’s position to a local coordinate system of the object, in which the object is centered at the
-                origin.
-                <br><br>On the left side of the diagram below, we show the actual location of the ray as well as the
-                desired location of the circle. Near the middle, we show our ray’s position transformed to the local
-                coordinate system of the circle where the circle’s center sits at the origin. That ray’s position was
-                transformed by simply subtracting the desired location of our circle. Notice that in both scenarios of
-                the diagram, the ray shares the same distance to the circle. This is absolutely critical as the SDFs
-                only job is to get an accurate distance to an object.
-
-                <br><br><img class="img-fluid" src="images/menger_sponge/image13.png" alt="">
-
-                <br><br>This simplifies the logic within the SDF, as it no longer concerns itself with translations of
-                objects. Our new SDF for a sphere and translating that sphere now looks likes this:
-
-            <pre><code>
-float sdSphere(vec3 rayPosition, float radius) {
-    float distToCenter = length(rayPosition);
-    return distToCenter - radius;
-}
-
-void rayMarchingLoop() {
-    // …
-    vec3 spherePosition = vec3(-5.0, 3.0, 0.0);
-    vec3 distToSphere = sdSphere(rayPosition - spherePosition, 1.0);
-    // ...
-}
-                </code></pre>
-
-            <a href="https://www.shadertoy.com/view/3lKSWh">[DEMO: Sphere Method #2]</a>
-
-            </p>
-
-            <p class="lead">Scaling</p>
-
-            <p>
-
-                <br>Similar to translation, the SDF actually doesn’t have to handle the exact dimensions of the object
-                (radius in terms of the sphere) as we can scale the object to our desired dimensions outside of the SDF.
-                Scaling is a little less obvious than translation but the technique is very easy to remember. Just like
-                translation, we are going to manipulate our ray’s position before sending it to the SDF in order to
-                manipulate our objects.
-                <br><br>First let’s start with seeing what it is like to scale something up. And really quick, let’s
-                think about what won’t work. If a sphere of radius 1.0 is 2.0 units away, then scaling that sphere up to
-                a radius of 2.0 would mean it is now 1.0 unit away. The sphere is twice as big and our distance is now
-                halved. With this example, it would seem we could simply divide the distance to an object by the value
-                we wish to scale it. But take just one more example and we can see this does not hold. If a sphere of
-                radius 1.0 is 3.0 units away, scaling that sphere up to a radius of 2.0 would mean we are now 2.0 units
-                away. The sphere is twice as big, but now our distance is 2/3rds its original length. Hmmmm...
-                <br><br>The approach that we are going to take is to pretend the coordinate system that our ray lives in
-                has been shrunken down, while the object represented by the SDF remains unchanged. From the perspective
-                of the ray’s coordinate system, the object has grown. From this shrunken coordinate system, we can gain
-                the distance to the “scaled up” object. The only problem is that the distance we calculated is the
-                distance to the “scaled up” object in our shrunken coordinate system. In order to correct this, we must
-                map the calculated distance back to our original coordinate system (unshrink it). So if we shrunk our
-                coordinate system down by 7.0 (in order to scale the object up to 7.0 times its original size), the
-                distances we calculated will then need to be multiplied by 7.0 to map it back to the original coordinate
-                system.
-                <br><br>In the figure below: In black we have the original ray, a unit circle, and the distance between
-                them. In red, we have the desired scaled circle and the desired distance between the scaled circle and
-                the ray.
-
-                <br><br><img class="img-fluid" src="images/menger_sponge/image5.png" alt="">
-
-                <br><br>In the figure below: In black we have the shrunken down ray, the original circle (“scaled up”
-                from the perspective of the ray), and the distance between them. In red, we have the same distance
-                mapped back to the original coordinate system (unshrunken).
-
-                <br><br><img class="img-fluid" src="images/menger_sponge/image24.png" alt="">
-
-                <br><br>To scale down, we take the exact same approach:
-
-                <br><br><img class="img-fluid" src="images/menger_sponge/image18.png" alt="">
-
-                <br><br><img class="img-fluid" src="images/menger_sponge/image15.png" alt="">
-
-                <br><br>I hate to say it but now our SDF to a sphere is even simpler than before, as it no longer
-                concerns itself with the scaling of the object either! Taking in only the ray’s position as a parameter.
-
-            <pre><code>
-float sdSphere(vec3 rayPosition) {
-    return length(rayPosition) - 1.0;
-}
-
-void someFunction() {
-    // …
-    vec3 spherePosition = vec3(-5.0, 3.0, 0.0);
-    float sphereRadius = 3.0;
-    vec3 distToSphere = sdSphere((rayPos - spherePosition) / sphereRadius) * sphereRadius;
-    // ...
-}
-                </code></pre>
-
-            <a href="https://www.shadertoy.com/view/3lKSWh">[DEMO: Sphere Method #3]</a>
-
-            </p>
-
-            <p class="lead">Folding</p>
-
-            <p>
-
-                When trying to calculate the distance to an object, we can often simplify the problem by taking
-                advantage of an object’s symmetry. Symmetry is an extremely common property of many primitive shapes.
-                For example: cubes, spheres, cylinders, and toruses can be seen as symmetrical across all axes when
-                centered at the origin and thoughtfully oriented. The figure below shows an object that is symmetrical
-                along both the x and y axes.
-
-                <br><br><img class="img-fluid" src="images/menger_sponge/image26.png" alt="">
-
-                <br><br>Notice that each dot of the same color is equidistant to the object. This is where folding
-                becomes incredibly useful. Taking the absolute value of the x & y components of any point will map that
-                point to one with the same color in the positive (upper right) quadrant. By taking advantage of the
-                symmetry of our object and the absolute value of our ray’s position, we can allow our SDF to focus
-                solely on finding the distance to our object for points in the positive quadrant.
-
-                <br><br><img class="img-fluid" src="images/menger_sponge/image38.png" alt="">
-
-                <br><br>To demonstrate how this can simplify things, let’s look at an SDF for a cube.
-
-            </p>
-
-            <p class="lead">SDF to cube</p>
-
-            <p>
-
-                Let us start with finding the distance to a square. In this example, we are going to use the symmetry of
-                a square to our advantage. We will work exclusively with the absolute values of points. In the figure
-                below, we partition the positive quadrant into four sections to understand the different ways we might
-                calculate the distance to the square.
-
-                <br><br><img class="img-fluid" src="images/menger_sponge/image36.png" alt="">
-
-                <br><br>Let us first take a look at the upper right (yellow) partition. If both our X and Y components
-                are greater than half the width of our square, we simply need to calculate the distance to the corner of
-                our square. With only taking that into consideration, our SDF would look something like this:
-
-            <pre><code>
-float sdSquareCornerOnly(vec2 rayPos) {
-    const float halfWidth = 3.0; // can be any value
-    const vec2 corner = vec2(halfWidth, halfWidth);
-    vec2 ray = abs(rayPos); // fold ray into positive quadrant
-    vec2 cornerToRay = ray - corner;
-    return length(cornerToRay);
-}
-                </code></pre>
-
-            Now, let’s incorporate the upper left (blue) and lower right (purple) sections. Think of the vector pointing
-            from the corner to the blue dot and from the corner to the purple dot. If any component in our vector from
-            the corner to our ray has a negative value (the x component will be negative when pointing to blue dot, the
-            y component will be negative when pointing to purple dot), we can simply ignore that component in our
-            distance calculation by setting it to zero. An updated SDF looks like this:
-
-            <pre><code>
-float sdSquareOutsideOnly(vec2 rayPos) {
-    const float halfWidth = 3.0; // can be any value
-    const vec2 corner = vec2(halfWidth, halfWidth);
-    vec2 ray = abs(rayPos); // fold ray into positive quadrant
-    vec2 cornerToRay = ray - corner;
-    vec2 closestToRay = max(cornerToRay, 0.0);
-    return length(closestToRay);
-}
-                </code></pre>
-
-            The max() function is a component-wise function in which each component of the vector will be the max
-            between its current value and the second parameter passed in (0.0 in this case). This effectively clamps all
-            negative values of our vector to 0.0. So what does our SDF currently return if we are inside the square? In
-            that case, all components of our vector would be negative and then clamped to (0.0, 0.0). The length of that
-            vector is zero. A great starting point.
-            <br><br>We are only inside the square if all components of the vector pointing from the corner to our ray’s
-            position are negative. Look back at the diagram to see that that is true. When inside the square, our
-            closest point is the distance to either the left or right walls. These values are the component values in
-            our cornerToRay vector. Since the vector from the corner to the ray points in the negative direction for
-            both x & y components, we take the maximum of these values to find the minimum signed distance. With this
-            additional information, let’s finish our SDF.
-
-            <pre><code>
-float sdSquare(vec2 rayPos) {
-    const float halfWidth = 3.0; // can be any value
-    const vec2 corner = vec2(halfWidth, halfWidth);
-    vec2 ray = abs(rayPos); // fold ray into positive quadrant
-    vec2 cornerToRay = ray - corner;
-    float cornerToRayMaxComponent = max(cornerToRay.x, cornerToRay.y);
-    float distToInsideRay = min(cornerToRayMaxComponent, 0.0);
-    vec2 closestToOutsideRay = max(cornerToRay, 0.0);
-    return length(closestToOutsideRay) + distToInsideRay;
-}
-                </code></pre>
-
-            The addition at the end is made possible as “distToInsideRay” will be equal to 0.0 if the ray exists outside
-            of the square and, as discussed before, the “closestToOutsideRay” will be equal to 0.0 if the ray exists
-            inside of the square. In other words, at least one operand of the final addition is guaranteed to be 0.0.
-            Meaning the returning value will be either the length of “closestToOutsideRay” or “distToInsideRay”.
-            <br><br>The SDF to a cube uses all the same logic as just described, plus adding one more dimension. The SDF
-            can be represented as the following:
-
-            <pre><code>
-float sdCube(vec3 rayPos) {
-    const float halfWidth = 3.0; // can be any value
-    const vec3 corner = vec3(halfWidth, halfWidth, halfWidth);
-    vec3 ray = abs(rayPos); // fold ray into positive octant
-    vec3 cornerToRay = ray - corner;
-    float cornerToRayMaxComponent = max(max(cornerToRay.x, cornerToRay.y), cornerToRay.z);
-    float distToInsideRay = min(cornerToRayMaxComponent, 0.0);
-    vec3 closestToOutsideRay = max(cornerToRay, 0.0);
-    return length(closestToOutsideRay) + distToInsideRay;
-}
-                </code></pre>
-
-            <a href="https://www.shadertoy.com/view/3lKSWh">[DEMO: Cube]</a>
-
-            </p>
-
-            <p class="lead">SDF to infinite cross</p>
-
-            <p>
-
-                We now have all the tools needed to create an infinite cross. You could think of creating an infinite
-                cross by starting with our sdCube and simply extruding each face out infinitely. The diagram below shows
-                a 2D representation of our infinite cross. As you can see, our distance formula for each of the dots has
-                changed quite a bit. Three of our four original dots are now within the object with only one outside.
-
-                <br><br><img class="img-fluid" src="images/menger_sponge/image34.png" alt="">
-
-                <br><br>Although the distance functions to each point have changed, the equations don’t look too
-                foreign. Let’s start by covering the distance to our red point in the lower left partition. The closest
-                distance is clearly the corner.
-
-            <pre><code>
-float sdCrossInnerCornerOnly(vec2 rayPos) {
-    const float halfWidth = 3.0;
-    const vec2 corner = vec2(halfWidth, halfWidth);
-    vec2 ray = abs(rayPos); // fold ray into positive quadrant
-    vec2 cornerToRay = ray - corner;
-    return -length(cornerToRay); // inside distance is negative distance
-}
-                </code></pre>
-
-            An SDF returns positive values when a point is outside of the object it defines and negative values when it
-            is inside of the object it defines. Signed Distance Functions are signed and the length of a vector is
-            always a positive value. So we must negate the distance to the corner to appropriately return a negative
-            number when inside of the cross.
-            <br><br>We can then take a similar approach as we did with the sdCube, except this time eliminating the
-            positive components of the vector that points from the inner corner to the blue and purple points in the
-            upper left and lower right partitions, respectively..
-
-            <pre><code>
-float sdCrossInnerOnly(vec2 rayPos) {
-    const float halfWidth = 3.0;
-    const vec2 corner = vec2(halfWidth, halfWidth);
-    vec2 ray = abs(rayPos); // fold ray into positive quadrant
-    vec2 cornerToRay = ray - corner;
-    vec2 closestInsidePoint = min(cornerToRay, 0.0);
-    return -length(closestInsidePoint);
-}
-                </code></pre>
-
-            So far our SDF covers all of the possible points that reside within the cross itself, for which the SDF
-            would return a negative value. All that remains is the positive distances. As we saw in our last diagram,
-            the distance to a point outside of the cross is simply the difference between the smallest component of our
-            point and half the width of the cross.
-
-            <pre><code>
-float sdCross(vec2 rayPos) {
-    const float halfWidth = 3.0;
-    const vec2 corner = vec2(halfWidth, halfWidth);
-    vec2 ray = abs(rayPos); // fold ray into positive quadrant
-    vec2 cornerToRay= ray - corner;
-    float minComponent= min(cornerToRay.x, cornerToRay.y);
-    float closestInsidePoint = min(cornerToRay, 0.0);
-    return (minComponent  > 0.0) ? minComponent : -length(closestInsidePoint );
-}
-                </code></pre>
-
-            In order for a point to exist outside of the cross, both components must have a value greater than the
-            halfWidth of our cross. Subtracting the corner from our point subtracts the halfwidth from both components.
-            If the minimum component is greater than 0, they both are and the distance is the minimum component.
-            Otherwise, we are inside the cross and our previous calculated distance is desired.
-
-            <br><br>Adding one more dimension to the cross isn’t incredibly obvious, so let’s talk about it a bit. For
-            the 2D “infinite cross”, we determined that the ray was outside of the cross if both components were greater
-            than half the width of the cross and the ray was inside of the cross otherwise. What do the regions look
-            like for a 3D infinite cross? What do I mean by a 3D “infinite cross”?
-            <br><br>Our definition for a 2D infinite cross is a square in which each face has been extruded out
-            infinitely. Our definition for a 3D infinite cross is a cube in which each face has been extruded out
-            infinitely.
-
-            <br><br><img class="img-fluid" src="images/menger_sponge/image31.png" alt="">
-
-            <br><br>For our 2D infinite cross we had four unique locations that a ray could be:
-            <ol>
-
-                <li>Inside the original square. This occurs when both components are smaller than the halfwidth. Closest
-                    is the distance to the inner corner (negated).
-                </li>
-                <li>Inside the extruded face that extends in the x direction. This occurs when only the y-component is
-                    smaller than the halfwidth. Closest distance is the y component minus the halfwidth.
-                </li>
-                <li>Inside the extruded face that extends in the y direction. This occurs when only the x-component is
-                    smaller than the halfwidth.Closest distance is the x component minus the halfwidth.
-                </li>
-                <li>Outside of the cross. This occurs when both components are larger than the halfwidth. Closest
-                    distance is the smallest component.
-                </li>
-
-            </ol>
-            <br><img class="img-fluid" src="images/menger_sponge/image32.png" alt="">
-
-            <br><br>NOTE: For the 3D infinite cross, we are folding space into the positive octant and we can think
-            about this problem only in terms of the positive octant. If you find yourself thinking about what happens
-            with negative coordinates...don’t! The symmetry of our object across all axes means we can ignore it! :)
-            <br><br>For our 3D infinite cross, we have five unique locations:
-            <ol>
-                <li>Inside the original cube. This occurs when all components are less than the halfwidth. Closest is
-                    the distance to the nearest inner edge (negated). If you think of each edge as corners on a
-                    2-dimensional plane, you may be able to notice that the nearest edge is determined by the largest
-                    two components of our ray’s position.
-                </li>
-                <li>Inside the extruded face that extends in the x direction. This occurs when only the x component is
-                    larger than the halfwidth. Closest distance can be framed as the inside of a square on the yz-plane.
-                    Closest distance is max(y,z) minus the halfwidth.
-                </li>
-                <li>Inside the extruded face that extends in the y direction. This occurs when only the y component is
-                    larger than the halfwidth. Closest distance can be framed as the inside of a square on the xz-plane.
-                    Closest distance is max(x,z) minus the halfwidth.
-                </li>
-                <li>Inside the extruded face that extends in the z direction. This occurs when only the z component is
-                    larger than the halfwidth. Closest distance can be framed as the inside of a square on the xy-plane.
-                    Closest distance is max(x,y) minus the halfwidth.
-                </li>
-                <li>Outside of the cross. This occurs when two or more components are larger than the halfwidth. Closest
-                    distance is to the closest extruded face. The closest extruding face is actually the face extruding
-                    in the direction of the largest component and the distance to that extruded face is a factor of the
-                    two smallest components.
-                </li>
-            </ol>
-            Let’s think about bulle #5. Moving in the x direction can be seen as moving parallel to the extruded face in
-            the x direction and perpendicular to both the extruded faces in the y & z directions. This means that moving
-            along in the positive x-direction has no effect on the distance of the extruded face in the x direction, but
-            does move us further away from the extruded faces in the y & z directions. This also highlights that the
-            x-component cannot be a factor in determining the distance to the face extruded in the x-direction.
-
-            <pre><code>
-float sdCross(vec3 rayPos) {
-    const float halfWidth = 1.0;
-    const vec3 corner = vec3(halfWidth, halfWidth, halfWidth);
-    vec3 ray = abs(rayPos); // fold ray into positive quadrant
-    vec3 cornerToRay = ray - corner;
-
-    float minComp = min(min(cornerToRay.x, cornerToRay.y), cornerToRay.z);
-    float maxComp = max(max(cornerToRay.x, cornerToRay.y), cornerToRay.z);
-    float midComp = cornerToRay.x + cornerToRay.y + cornerToRay.z - minComp - maxComp;
-
-    vec2 closestOutsidePoint = max(vec2(smallestComp, middleComp), 0.0);
-    vec2 closestInsidePoint = min(vec2(middleComp, largestComp), 0.0);
-
-    // Are there at least two components larger than the halfwidth?
-    return (middleComp > 0.0) ? length(closestOutsidePoint) : -length(closestInsidePoint);
-}
-            </code></pre>
-            <a href="https://www.shadertoy.com/view/3lKSWh">[DEMO: Cross]</a>
-
-            </p>
-
-            <p class="lead">Infinitely Repeating Space</p>
-
-            <p>
-
-                A very powerful tool in ray marching is the modulo operator. If unfamiliar, the modulo operator
-                (commonly denoted as ‘mod’ or ‘%’) simply returns the remainder of some division. For example, if you
-                divide 11 by 4, you get 2 with a remainder of 3. So 11 mod 4 is 3.
-                <br><br>The figure below shows what happens if you use mod 3 to transform the x & y components of our
-                ray positions. It divides our original unbounded coordinate system into infinite bounded coordinate
-                systems that range from [0, 3.0) for each axis. The diagram shows how our original coordinate system is
-                cut into slices. Each slice will be mapped to the highlighted region. To further demonstrate, the modulo
-                operator will map each dot to the dot with the same color in the highlighted region.
-
-                <br><br><img class="img-fluid" src="images/menger_sponge/image7.png" alt="">
-
-                <br><br>NOTE: The modulo operator is actually not defined for negative numbers. It is very possible that
-                the mod operator on your platform does not produce the same results as seen in the above diagram.
-
-                <br><br>In GLSL, mod(x, y) is defined as x - (y * floor(x/y)). If curious, you can play around with this
-                to see that it produces the results we desire (infinitely repeating identical bounded coordinate
-                spaces). If you’re playing around with the modulo operator outside of GLSL and things don’t look right,
-                this could be your problem. To verify it is your problem, simply replace the modulo operator with the
-                GLSL definition as stated above.
-
-                <br><br>One minor annoyance you might’ve noticed with our boxed coordinate systems is that the origins
-                are in the lower left corner. To get an origin at the center, we simply subtract half of the length of
-                our boxed coordinate system.
-
-                <br><br>In the figure above, we are performing mod 3 on the x & y components of our ray’s position
-                <br><br>In the figure below, we are doing the same and then subtracting 1.5 (half of 3).
-
-                <br><br><img class="img-fluid" src="images/menger_sponge/image8.png" alt="">
-
-                <br><br>Note that there is no longer a “true” slice that remains unchanged.
-                <br><br>There is nothing special about using the modulo operator in two dimensions. Two dimensional
-                diagrams are simply easier to draw and understand. When transforming 3D ray positions, we create
-                infinite bounded coordinate systems that resemble the shape of a box/cube, as opposed to a
-                rectangle/square.
-
-                <a href="https://www.shadertoy.com/view/3lKSWh">[DEMO: Infinite Spheres]</a>
-            </p>
-
-            <p class="lead">Boolean operations (union, subtraction, intersection)</p>
-
-            <p>
-
-                Our last step before diving straight into creating our menger sponge is understanding how to combine
-                primitive shapes to create more complex objects. The operations we are going to look at will be
-                subtracting one shape from another, the union of two shapes, and the intersection of two shapes
-
-                <br><br><img class="img-fluid" src="images/menger_sponge/image20.png" alt="">
-
-                <br><br> Let’s first take an effort to analyze the picture above. We have two shapes that intersect each
-                other, a circle and a square. We also have 5 points representing 5 regions with unique signed distances
-                to each of the two shapes.
-            <ul>
-                <li>P1: Positive distance to both circle & square. sdCircle() < sdSquare().</li>
-                <li>P2: Negative distance to circle. Positive distance to square. sdCircle() < sdSquare().</li>
-                <li>P3: Negative distance to both circle and square. sdCircle() and sdSquare() comparison unknown.</li>
-                <li>P4: Positive distance to circle. Negative distance to square. sdSquare() < sdCircle().</li>
-                <li>P5: Positive distance to both circle & square. sdSquare() < sdCircle().</li>
-            </ul>
-
-            <i>Union: min(sdShape1(ray), sdShape2(ray))</i>
-            <br><br><img class="img-fluid" src="images/menger_sponge/image37.png" alt="">
-            <ul>
-                <li>P1: sdCircle() is a smaller distance than sdSquare(), so the distance to the circle will be used
-                </li>
-                <li>P2: This should not occur, as a hit should have been identified before this point. But if a ray
-                    finds itself inside of the circle, we may use the negative value of sdCircle() to retreat back out
-                    of the union.
-                </li>
-                <li>P3: This should not occur, as a hit should have been identified before this point. But if a ray
-                    finds itself inside of both shapes, we may use the smallest negative value to retreat back out of
-                    the union.
-                </li>
-                <li>P4: This should not occur, as a hit should have been identified before this point. But if a ray
-                    finds itself inside of the square, we may use the negative value of sdSquare() to retreat back out
-                    of the union.
-                </li>
-                <li>P5: sdSquare() is a smaller distance than sdCircle(), so the distance to the square will be used.
-                </li>
-            </ul>
-
-            <img class="img-fluid" src="images/menger_sponge/image33.gif" alt="">
-
-            <br><br><i>Subtraction: max(-sdShape1(ray), sdShape2(ray))</i>
-
-            <br><br><img class="img-fluid" src="images/menger_sponge/image29.png" alt="">
-
-            <ul>
-                <li>P1: sdSquare() is a positive distance and -sdCircle() is a negative distance, so the distance to the
-                    square will be used.
-                </li>
-                <li>P2: -sdCircle() and sdSquare() are both positive distances, so the largest distance will be used.
-                </li>
-                <li>P3: -sdCircle() is a positive distance and sdSquare() is a negative distance, so the -sdCircle()
-                    will be used.
-                </li>
-                <li>P4: This should not occur, as a hit should have been identified before this point. But if a ray
-                    finds itself inside of the square, we will use the negative value closer to zero to retreat.
-                </li>
-                <li>P5: sdSquare() is a larger distance than -sdCircle, so the distance to the square will be used.</li>
-            </ul>
-
-            <img class="img-fluid" src="images/menger_sponge/image2.gif" alt="">
-
-            <br><br><i>Intersection: max(sdShape1(ray), sdShape2(ray))</i>
-
-            <br><br><img class="img-fluid" src="images/menger_sponge/image3.png" alt="">
-
-            <ul>
-                <li>P1: sdSquare() is a larger distance than sdCircle(), so the distance to the square will be used.
-                </li>
-                <li>P2: sdSquare() is a positive distance and sdCircle() is a negative distance, so the distance to the
-                    square will be used.
-                </li>
-                <li>P3: This should not occur, as a hit should have been identified before this point. But if a ray
-                    finds itself inside of the intersection, we may use the smallest negative value to retreat back out
-                    of the intersection.
-                </li>
-                <li>P4: sdCircle() is a positive distance and sdSquare() is negative, so the distance to the circle is
-                    used.
-                </li>
-                <li>P5: sdCircle() is a larger distance than sdSquare(), so the distance to the circle is used.</li>
-            </ul>
-
-            <img class="img-fluid" src="images/menger_sponge/image27.gif" alt="">
-
-            </p>
-
-            <p class="lead">Menger Sponge iteration 1</p>
-
-            <p>
-
-                We are going to move forward with creating the sponge in very explicit steps. For starters, lets create
-                an infinite cross that is as wide as our soon-to-be Menger Sponge. We will bound it within a box that is
-                twice the width of the cross. This bounding box is just to get a better idea of what we are working
-                with. The code and resulting image will look something like this.
-
-            <pre><code>
-float sdBoundedCross(vec3 rayPos) {
-    float boundingBoxDist = sdCube(rayPos / 2.0) * 2.0;
-    float crossDist = sdCross(rayPos);
-    float intersection = max(boundingBoxDist, crossDist);
-    return intersection;
-}
-                </code></pre>
-
-            <a href="https://www.shadertoy.com/view/3lKSWh">[DEMO: Menger Sponge Part 1: Bounded Cross]</a>
-
-            <br><br><img class="img-fluid" src="images/menger_sponge/image12.png" alt="">
-
-            <br><br>For the first iteration of the Menger Sponge, we need to subtract a cross that is a third the width
-            of the sponge and is properly aligned with the center of each face. With that in mind, let’s skinny up our
-            cross to a third of the sponge’s dimensions.
-
-            <pre><code>
-float sdBoundedCrossSlimmed(vec3 rayPos) {
-    const float oneThird = 1.0 / 3.0;
-    float boundingBoxDist = sdCube(rayPos / 2.0) * 2.0;
-    float crossDist = sdCross(rayPos / oneThird ) * oneThird ;
-    float intersection = max(boundingBoxDist, crossDist);
-    return intersection;
-}
-            </code></pre>
-
-            <a href="https://www.shadertoy.com/view/3lKSWh">[DEMO: Menger Sponge Part 2: Slimmed Bounded Cross]</a>
-
-            <br><br><img class="img-fluid" src="images/menger_sponge/image30.png" alt="">
-
-            <br><br>Now to make things a little clearer, let’s draw the outermost cube of the sponge and take a union
-            with what we have.
-
-            <pre><code>
-float sdBoundedCrossWithBox(vec3 rayPos) {
-    const float oneThird = 1.0 / 3.0;
-    float boundingBoxDist = sdCube(rayPos / 2.0) * 2.0;
-    float crossDist = sdCross(rayPos / oneThird) / oneThird;
-    float intersection = max(boundingBoxDist, crossDist);
-    float spongeBox = sdCube(rayPos);
-    float boxCrossUnion = min(intersection, spongeBox);
-    return boxCrossUnion;
-}
-            </code></pre>
-
-            <a href="https://www.shadertoy.com/view/3lKSWh">[DEMO: Menger Sponge Part 3: Bounded Cross w/ Box]</a>
-
-            <br><br><img class="img-fluid" src="images/menger_sponge/image14.png" alt="">
-
-            <br><br>If you are familiar with your basic boolean operations, it’s probably already obvious that we should
-            have just performed a subtraction to get our first iteration of the Menger Sponge. While we’re at it, we’ll
-            remove the bounding box, as it no longer serves as a visual helper.
-
-            <pre><code>
-float sdMengerSpongeIteration1(vec3 rayPos) {
-    float crossDist = sdCross(rayPos * 3.0) / 3.0;
-    float spongeBox = sdCube(rayPos);
-    return max(spongeBox, -crossDist);
-}
-            </code></pre>
-
-            <a href="https://www.shadertoy.com/view/3lKSWh">[DEMO: Menger Sponge Part 4: Iteration 1]</a>
-
-            <br><br><img class="img-fluid" src="images/menger_sponge/image17.png" alt="">
-
-            <br><br>And a little peek inside...
-
-            <br><br><img class="img-fluid" src="images/menger_sponge/image23.png" alt="">
-
-            </p>
-
-            <p class="lead">Menger Sponge iteration 2</p>
-
-            <p>
-
-                So that’s how you do it once. But how do we do it iteratively? Well let us start by thinking exactly
-                what we want. The first iteration is taking the full box, cutting each dimension into thirds resulting
-                in 27 equal sized boxes, removing the 6 boxes in the center of each face, as well as the one box in the
-                very center. The second iteration, we take the remaining 20 boxes and perform the same operations
-                (cutting into 27 equal boxes & removing). We then perform those operations on the remaining 400 boxes
-                and so on.
-
-                <br><br>As a good step in the right direction, let’s see what it looks like to simply cut a box into
-                those 27 equal sized boxes. As you might imagine, the answer is not manually finding the distance to 27
-                hardcoded boxes. For this we are going to take advantage of the modulo operator and allow space to
-                repeat itself. Let’s start out with just creating a bunch of boxes with modulo.
-
-            <pre><code>
-float sdBoundedBoxFieldBroken(vec3 rayPos) {
-    float boundingBox = sdCube(rayPos / 3.9) * 3.9;
-    vec3 ray = mod(rayPos, 2.0);
-    float dist = sdCube(ray / 1.5) * 1.5;
-    return max(dist, boundingBox);
-}
-                </code></pre>
-
-            <a href="https://www.shadertoy.com/view/3lKSWh">[DEMO: Menger Sponge Part 5: Bounded Box Field (Broken)]</a>
-
-            <br><br><img class="img-fluid" src="images/menger_sponge/image9.png" alt="">
-
-            <br><br>The modulo simply cuts the world into infinite boxes that are all of width 2.0 units. Within each of
-            these “boxed worlds”, we decide to draw a slightly smaller box. There’s a decent problem though. Which can
-            be demonstrated by choosing a not-so-nice bounding box, and taking a look from another angle.
-
-            <pre><code>
-float sdBoundedBoxFieldBroken(vec3 rayPos) {
-    float boundingBox = sdCube(rayPos / 4.0) * 4.0;
-    vec3 ray = mod(rayPos, 2.0);
-    float dist = sdCube(ray / 1.5) * 1.5;
-    return max(dist, boundingBox);
-}
-            </code></pre>
-
-            <img class="img-fluid" src="images/menger_sponge/image19.png" alt="">
-
-            <br><br>More like sdJankyBoundedBoxField(), amirite? It’s not what we want but it is still pretty cool,
-            huh?!
-
-            <br><br>So our problem is that when performing our modulo operator, we are correctly cutting the space into
-            boxes with width equal to 2.0 units. The problem is our coordinate system has all axes going from [0.0, 2.0)
-            but our distance formulas are made to get the distance to a box at the origin. Currently, the boxes we are
-            trying to render are “bleeding” out of their spaces past the origin of the boxed worlds and causing all
-            sorts of strange artifacts. What we need to do to correct the situation is modify things slightly so the
-            origins of each of our boxed worlds reside in the center. We just subtract half of their width and instead
-            of coordinate systems where each axis goes from [0, 2.0), we have coordinate systems that go from [-1.0,
-            1.0).
-
-            <pre><code>
-float sdBoundedBoxField(vec3 rayPos) {
-    float boundingBox = sdCube(rayPos / 4.0) * 4.0;
-    vec3 ray = mod(rayPos, 2.0);
-    ray -= 1.0;
-    float dist = sdCube(ray / 0.8) * 0.8;
-    return max(dist, boundingBox);
-}
-            </code></pre>
-
-            <a href="https://www.shadertoy.com/view/3lKSWh">[DEMO: Menger Sponge Part 5: Bounded Box Field (Fixed)]</a>
-
-            <br><br><img class="img-fluid" src="images/menger_sponge/image28.png" alt="">
-
-            <br><br>Bada bing, bada boom. You got yourself a proper box field.
-
-            <br><br>Now that we have a bunch of cubes, let’s try to narrow them down to just the 27 that we need.
-
-            <pre><code>
-float sdTwentySevenBoxesKinda(vec3 rayPos) {
-    // bounding box spans all axes between [-1.0, 1.0]
-    float boundingBox = sdCube(rayPos);
-    // The rays are transformed into boxed spaces with all axes between [0, 2.0 / 3.0)
-    // this is because each cube should have a third the dimension of the entire cube
-    float boxedWorldDimen = 2.0 / 3.0;
-    vec3 ray = mod(rayPos, boxedWorldDimen);
-    // The origin within the boxes is moved from the corner to the center of the cube,
-    // with the rays now having a range between [-2.0 / 6.0, 2.0 / 6.0)
-    ray -= (boxedWorldDimen) / 2.0;
-    // Stretch coordinates of each boxed space to range [-1.0, 1.0)
-    ray *= 3.0;
-    // Shrink the cubes slightly to reveal gaps between them
-    float dist = sdCube(ray / 0.9) * 0.9;
-    // Correct warping of space caused by previously stretching the ray
-    dist /= 3.0;
-    return max(dist, boundingBox);
-}
-            </code></pre>
-
-            <a href="https://www.shadertoy.com/view/3lKSWh">[DEMO: Menger Sponge Part 7: Twenty Seven Boxes...Kinda]</a>
-
-            <br><br><img class="img-fluid" src="images/menger_sponge/image11.png" alt="">
-
-            <br><br>Looks like we have another problem. We have the right sized boxes. They are all stacked properly.
-            But some of them are cut strange and how can we create a Menger Sponge if there are no center boxes to cut
-            out? The problem is that they are not aligned how we would like them. The boxes are currently aligned to run
-            alongside each axis. I’m going to perform an intersection with cross to give us a nice visual of what is
-            going wrong here.
-
-            <pre><code>
-float sdTwentySevenBoxesCross(vec3 rayPos) {
-    float boundingBox = sdCube(rayPos);
-    float boxedWorldDimen = 2.0 / 3.0;
-    vec3 ray = mod(rayPos, boxedWorldDimen);
-    ray -= (boxedWorldDimen) / 2.0;
-    ray *= 3.0;
-    float dist = sdCube(ray / 0.9) * 0.9;
-    dist /= 3.0;
-    dist = max(dist, boundingBox);
-    // Cross that runs along the axes
-    float axesCross = sdCross(rayPos / 0.25) * 0.25;
-    return max(dist, axesCross);
-}
-            </code></pre>
-
-            <a href="https://www.shadertoy.com/view/3lKSWh">[DEMO: Menger Sponge Part 8: Twenty Seven Boxes Cross
-                Section]</a>
-
-            <br><br><img class="img-fluid" src="images/menger_sponge/image22.png" alt="">
-
-            <br><br>As you can see here, the modulo operator has our “box worlds” aligned in such a way that eight of
-            them have corners touching the origin and anywhere else along the axes will be surrounded by four box
-            worlds. In order to align the boxes with a box centered at the origin, we will have to translate the boxes
-            accordingly.
-
-            <br><br>Hopefully at this point you understand that there aren’t actually a finite amount of boxes. We
-            created a never ending world of boxes and are simply only showing the boxes that intersect with our bounding
-            box. Since we have infinite boxes, there are actually many different ways we could translate these cubes to
-            get what we want. We just need a center cube and any would work. For our case though, we are going to go
-            ahead and translate the first cube that lies in the positive octant of our world (between <0, 0, 0> & <2/3,
-            2/3, 2/3>) to the center position.
-
-            <pre><code>
-float sdTwentySevenBoxes(vec3 rayPos) {
-    float boundingBox = sdCube(rayPos);
-    float boxedWorldDimen = 2.0 / 3.0;
-    // We want to translate the first box in the positive octant to change its world coordinates
-    // from [0, boxedWorldDimen) to [-boxedWorldDimen / 2.0, boxedWorldDimen / 2.0)
-    float translation = boxedWorldDimen / 2.0;
-    vec3 ray = rayPos + translation;
-    ray = mod(ray, boxedWorldDimen);
-    ray -= (boxedWorldDimen) / 2.0;
-    ray *= 3.0;
-    float dist = sdCube(ray / 0.9) * 0.9;
-    dist /= 3.0;
-    return max(dist, boundingBox);
-}
-            </code></pre>
-
-            <a href="https://www.shadertoy.com/view/3lKSWh">[DEMO: Menger Sponge Part 9: 27 Cubes]</a>
-
-            <br><br><img class="img-fluid" src="images/menger_sponge/image16.png" alt="">
-
-            <br><br>And there you have it! Exactly what we want. The most boring Rubik’s Cube you’ve ever seen. A
-            perfect start to our spongey boy.
-
-            <br><br>You might already have guessed it, but with what we have now, we’re very close to our second
-            iteration of the Menger sponge! Let us use our stacked boxed worlds to create crosses instead of cubes! Each
-            one third the width of our boxed worlds (and one ninth the width of our entire sponge).
-
-            <pre><code>
-float sdTwentySevenCrossesBound(vec3 rayPos) {
-    const float oneThird = 1.0 / 3.0;
-    float boundingBox = sdCube(rayPos);
-    float boxedWorldDimen = 2.0 / 3.0;
-    float translation = boxedWorldDimen / 2.0;
-    vec3 ray = rayPos + translation;
-    ray = mod(ray, boxedWorldDimen);
-    ray -= (boxedWorldDimen) / 2.0;
-    ray *= 3.0;
-    float dist = sdCross(ray / oneThird) * oneThird;
-    dist /= 3.0;
-    return max(dist, boundingBox);
-}
-            </code></pre>
-
-            <a href="https://www.shadertoy.com/view/3lKSWh">[DEMO: Menger Sponge Part 10: 27 Crosses Bound]</a>
-
-            <br><br><img class="img-fluid" src="images/menger_sponge/image25.png" alt="">
-
-            <br><br>Can you see where this is going?
-
-            <br><br>All we need to do is unbound the crosses from our bounding box, as the visual help is no longer
-            needed, and then subtract what we have from our first iteration of the Menger Sponge.
-
-            <pre><code>
-float sdMengerSpongeIteration2(vec3 rayPos) {
-    const float oneThird = 1.0 / 3.0;
-    float boxedWorldDimen = 2.0 / 3.0;
-    float translation = boxedWorldDimen / 2.0;
-    vec3 ray = rayPos + translation;
-    ray = mod(ray, boxedWorldDimen);
-    ray -= (boxedWorldDimen) / 2.0;
-    ray *= 3.0;
-    float crossesUnboundDist = sdCross(ray / oneThird) * oneThird;
-    crossesUnboundDist /= 3.0;
-
-    float distFirstIter = sdMengerSpongeIteration1(rayPos);
-    return max(distFirstIter, -crossesUnboundDist);
-}
-            </code></pre>
-
-            <a href="https://www.shadertoy.com/view/3lKSWh">[DEMO: Menger Sponge Part 11: Iteration 2]</a>
-
-            <br><br><img class="img-fluid" src="images/menger_sponge/image6.png" alt="">
-
-            <br><br>Now we’re really getting somewhere!!
-
-            </p>
-
-            <p class="lead">Menger Sponge iteration N</p>
-
-            <p>
-
-                Now that we have two iterations of the Menger Sponge, let us see if we can find a pattern that will
-                allow us to create both iterations. he way I am going to approach this problem will start with a little
-                intuition. I will attempt to describe the best I can where these feelings come from.
-
-                <br><br>There seems to be a lot of necessary computation involved in creating those 27 crosses for
-                Iteration #2. For instance, the mod operator seems like it would be incredibly difficult (impossible?)
-                to remove. Whereas creating just the one cross for Iteration #1 felt very easy in comparison. I see a
-                potential easier path forward in creating an “over-complicated” Iteration #1 using logic very close to
-                Iteration #2. With the hope being that this may lead to a more generic algorithm that will help us
-                produce an Nth iteration of the Menger Sponge.
-
-            <pre><code>
-float sdTwentySevenCrossesBound(vec3 rayPos) {
-    const float oneThird = 1.0 / 3.0;
-    float boundingBox = sdCube(rayPos);
-    float boxedWorldDimen = 2.0 / 3.0;
-    float translation = boxedWorldDimen / 2.0;
-    vec3 ray = rayPos + translation;
-    ray = mod(ray, boxedWorldDimen);
-    ray -= boxedWorldDimen / 2.0;
-    ray *= 3.0;
-    float dist = sdCross(ray / oneThird) * oneThird;
-    crossesDist /= 3.0;
-    return max(boundingBox, crossesDist);
-}
-                </code></pre>
-
-            <pre><code>
-float sdOneCrossOvercomplicatedBound(vec3 rayPos) {
-    const float oneThird = 1.0 / 3.0;
-    float boundingBox = sdCube(rayPos);
-    // we want our boxed world dimensions to be as big as the entire box
-    float boxedWorldDimen = 2.0 / 1.0; // division by 1 for illustrative purposes
-    // Translate the origin of the boxed world to align with origin of the sponge
-    float translation = boxedWorldDimen / 2.0;
-    vec3 ray = rayPos + translation;
-    // Create infinite stacked boxes the same width of our sponge
-    ray = mod(ray, boxedWorldDimen);
-    // Adjust our coordinate system so that our local coordinates within the
-    // boxed worlds go from [-boxedWorldDimen/2.0, boxedWorldDimen/2.0)
-    // placing the origin in the center
-    ray -= boxedWorldDimen / 2.0;
-    // As before we want our coordinate system to go from [-1.0, 1.0)
-    ray *= 1.0; // multiplication by 1 for illustrative purposes
-    float crossDist = sdCross(ray / oneThird) * oneThird;
-    // Unwarp the space caused by our previous multiplication of our ray
-    crossDist /= 1.0; // division by 1 for illustrative purposes
-    return max(boundingBox, crossDist);
-}
-                </code></pre>
-
-            <a href="https://www.shadertoy.com/view/3lKSWh">[DEMO: Menger Sponge Part 12: One Cross
-                Over-Complicated]</a>
-
-            <br><br>That overcomplicated cross bound gives us the following:
-
-            <br><br><img class="img-fluid" src="images/menger_sponge/image35.png" alt="">
-
-            <br><br>Subtract it from our full sized box to create the 1st iteration! We’re definitely getting somewhere.
-            :)
-
-            <pre><code>
-float sdMengerSpongeFirstIterationOvercomplicated(vec3 rayPos) {
-    float crossDist = sdOneCrossOvercomplicatedUnbound(rayPos);
-    float spongeBox = sdBox(rayPos, vec3(halfBoxDimen));
-    return max(spongeBox, -crossDist);
-}
-            </code></pre>
-
-            <img class="img-fluid" src="images/menger_sponge/image4.png" alt="">
-
-            <br><br>The differences between creating 1 cross and 27 crosses are fairly limited. The lines that differ
-            are the following:
-
-            <ul>
-                <li>Determining the size of the “stacked box worlds”</li>
-                <li>Scaling our the coordinate system of our boxed worlds to match the same range of the whole sponge
-                </li>
-                <li>Unwarping space due to our scaling of the boxed world coordinate system</li>
-            </ul>
-
-            These are the interesting spots of our SDF that we should focus on to find an algorithm that calculates the
-            distance to the Nth iteration of a Menger Sponge.
-
-            <pre><code>
-float sdMengerSponge(vec3 rayPos, int numIterations) {
-    float spongeCube = sdCube(rayPos);
-    float mengerSpongeDist = spongeCube;
-
-    float scale = 1.0;
-    for(int i = 0; i < numIterations; ++i) {
-        float boxedWidth = 2.0 / scale; // determining width of boxed worlds
-        float translation = boxed / 2.0;
-        vec3 ray = rayPos + translation;
-        vec3 ray = mod(ray, boxedWidth);
-        ray -= boxedWidth / 2.0;
-        ray *= scale; // scaling coordinate systems to go from [-1.0, 1.0)
-        float crossesDist = sdCross(ray * 3.0);
-        scale *= 3.0;
-        crossesDist /= scale; // unwarping space from previous multiplications of ray
-        // subtract crosses from spongeCube
-        mengerSpongeDist = max(mengerSpongeDist, -crossesDist);
+          <p>
+            <h2>Ray Marching: Menger Sponge Breakdown</h2>
+            <h5>An Iterative Ray Casting Rendering Technique</h5>
+          </p>
+          <img class="img-fluid rounded" src="images/menger_sponge/menger_spong_title_image.png"
+          alt="menger sponge rendered with ray marching">
+          <br><br>
+          <h3>What Is Ray Marching?</h3>
+          <p>There are two very popular methods to render 3D scenes. <em>Rasterization </em>has historically been the most
+          popular
+          method used for real-time graphics (ex: video games). In short, rasterization is a technique that projects 3D
+          models,
+          composed of 3D triangles, onto a 2D plane. Another popular method of rendering is <em>ray-tracing</em>. This
+          method
+          has historically been used for rendering scenes that require a greater amount of realism and are not required
+          to
+          render in real-time (ex: cinematic visual effects). Ray-tracing involves shooting virtual rays out of each
+          pixel
+          into
+          a virtual scene beyond the display. Calculating the intersections of the ray with the scene to determine the
+          pixel
+          color. Again, these 3D models are usually composed of 3D triangles. When compared with rasterization,
+          ray-tracing
+          works in a sort of reverse order. Rasterization starts with trying to draw a 3D model and determines which
+          pixels that
+          3D model will influence. Ray-tracing starts with a pixel and determines which 3D models influence it.</p>
+          <p>What we will discuss in this article is a third rendering method. A flavor of ray-casting known as <em>ray
+            marching</em>. There are still rays being shot out into the virtual world from each pixel of your screen.
+          But
+          whereas <em>ray tracing</em> performs a one-off calculation in determining the intersection between an
+          infinite
+          ray
+          and a 3D model, <em>ray marching</em> takes an, often cheaper, more iterative approach. Each ray shares the
+          same
+          starting position (the virtual camera’s position) and a function is used to determine how far that ray’s
+          current
+          position is to <em>any </em>element in the scene. To calculate the distance from each object in the virtual
+          scene, ray
+          marching uses what are called SDFs (signed distance fields). These functions do <em>not</em> determine the
+          distance a
+          ray will travel before it hits an object (as a ray tracing algorithm would do). SDFs do not even take the
+          direction of
+          the ray into consideration. They simply determine the distance between the ray’s current position and the
+          closest
+          point of an object. So although it doesn’t give us the exact distance a ray would have to travel before it
+          experiences
+          an intersection, it does tell us a distance that we can safely travel without running into anything. And, as
+          stated
+          before, ray marching is an iterative process. We acquire a safe distance to travel, we travel that distance,
+          and
+          repeat. When the distance returned by an SDF (the distance between the rays current position and an object
+          defined by
+          the SDF) falls under some specified threshold (ex: 0.0002 units), we will consider that a <em>hit</em> and do
+          the
+          lighting calculations for the surface.<br>The ray marching algorithm must also handle two edge cases:</p>
+          <p>To avoid infinite looping, we should cap off the rays after travelling some maximum specified distance (ex:
+          100
+          units). Some rays that may never hit an object in our scene.</p>
+          <ol>
+            <li>
+              <p>In order for ray marching to perform within a reasonable amount of time, we should also consider a
+              maximum
+              amount
+              of iterations we are willing to calculate (ex: 60 iterations). A great example for where iterations could
+              get
+              costly is an SDF that represents a long flat plane (wall) and a ray that is running parallel to the wall
+              just
+              outside of our specified hit distance. Each iteration the ray will inch forward in very small steps,
+              taking
+              a long
+              time to reach our maximum specified distance.</p>
+            </li>
+            <li>
+              <p>The ray marching algorithm considers both of these scenarios a “miss” and no lighting calculations will
+              be
+              performed as no surface was hit. In both of these edge cases, we make a trade off for performance. The ray
+              may
+              have hit if we let it travel 1 unit further and the ray may have hit if we had performed just one more
+              iteration.
+              Take note of this when specifying your maximum distances and iterations.</p>
+            </li>
+          </ol>
+          <p>To summarize, the algorithm of ray marching looks something like this:</p>
+          <ol>
+            <li>
+              <p>Calculate the distance to object(s) using the ray’s current position and the corresponding SDF</p>
+            </li>
+            <li>
+              <p>If that distance is smaller than the specified hit distance, we consider that a hit. We <em>exit the
+                algorithm</em> and perform lighting calculations for the surface that was hit.</p>
+            </li>
+            <li>
+              <p>Move the ray forward the distance calculated in step (1)</p>
+            </li>
+            <li>
+              <p>If the total distance that the ray has traveled exceeds the maximum specified distance, we consider that
+              a
+              miss
+              and <em>exit the algorithm</em>.&nbsp;</p>
+            </li>
+            <li>
+              <p>If the next iteration would exceed the specified maximum number of iterations, we consider that a miss
+              and
+              <em>exit the algorithm</em>.
+              </p>
+            </li>
+            <li>
+              <p>Go back to step 1, using the new position of our ray</p>
+            </li>
+          </ol>
+          <h3>Before We Continue…</h3>
+          <p>I do attempt to explain most things but I will not be explaining some concepts like vectors or coordinate
+          systems. If
+          you notice anything that went unexplained, please use your favorite search engine, LLM, or the resources at
+          the
+          end of
+          this article to find other wonderful education media on the topics.</p>
+          <p>There is a demo of the many things that are discussed in this article. This demo uses ShaderToy. It can be
+          viewed in
+          any browser and can be found in the link below. Functions in the style of sdXxxx() are the “signed distance
+          fields/functions” that you will learn about in this article. Please play around with the code! There a “?”
+          button in
+          the lower right corner of the text editor with lots of helpful information. And “alt + enter”/”cmd+enter” will
+          trigger
+          a compile so you can see the results of your changes! </p>
+          <p><a href="https://www.shadertoy.com/view/MXB3Wt">https://www.shadertoy.com/view/MXB3Wt</a></p>
+          <p>The code in ShaderToy are fragment shaders written in GLSL ES, which stands for the OpenGL Shading Language
+          Embedded
+          Systems. OpenGL being a library used for running various shader programs on a GPU. A shader being a heavily
+          parallel
+          processed program that runs on a GPU. And an embedded system being really anything that isn’t a personal
+          computer but,
+          in our use case of GLSL ES, mostly just means it runs on mobile devices. The benefit of using GLSL ES is that
+          it
+          is a
+          subset of GLSL. So the code will run on your desktop, laptop, or smart phone.</p>
+          <p>In this article, we strictly concern ourselves with fragment shaders that run once per-pixel for every pixel
+          in
+          a
+          specified viewport (could be window or could be the whole screen). However, do note that that is not the only
+          (or even
+          the primary) way that fragment shaders are used.</p>
+          <p>Below are two code snippets of the same OpenGL ES code implementing the ray marching algorithm. The first
+          with
+          explicit comments, and the second without (for improved code readability):</p>
+          <pre><code><code>#version 320 es
+// ^^ specify OpenGL ES version
+
+// requested precision of float values (ignore this)
+precision highp float;
+
+// name of the shader output value (RGBA pixel color)
+out vec4 FragColor;
+
+// max number of ray marching iterations
+#define MAX_STEPS 100
+
+// max distance from object before considered a miss
+#define MISS_DIST 60.0
+
+// max distance to object before considered as hit
+#define HIT_DIST 0.01
+
+// "uniform" means this value is set separately using 
+// the OpenGL library. Resolution in pixels.
+uniform vec2 screenResolution;
+
+// the position at which rays are spawned
+const vec3 cameraPos = vec3(6.0, 6.0, -6.0);
+
+// SDF to our scene as a whole
+float sdScene(vec3 rayPos);
+
+// main entry point
+void main() {
+  // gl_FragCoord.xy is a unique, per pixel (or "fragment"),
+  // whole number value. With origin in the lower left corner.
+  vec2 pixelCoord = gl_FragCoord.xy;
+
+  // Move origin from bottom left to center
+  pixelCoord -= (0.5 * screenResolution.xy);
+
+  // Scale y from -1.0 to 1.0, scale x by same factor
+  pixelCoord = pixelCoord / viewPortResolution.y;
+
+  // direction of ray through pixel
+  vec3 rayDir = vec3(pixelCoord.x, pixelCoord.y, 1.0);
+
+  // modify rayDir to be unit length (1 unit long)
+  rayDir = normalize(rayDir);
+
+  // distance the ray has travelled
+  float dist = 0.0;
+
+  // assume miss by default
+  bool hit = false;
+
+  // ray marching iteration count
+  int iterations = 0;
+
+  // break loop after max iterations
+  while(iterations &lt; MAX_STEPS) {
+
+    // current position of the ray
+    vec3 pos = cameraPos + (dist * rayDir);
+
+    // current distance to scene
+    float posToScene = sdScene(pos);
+
+    // add to total ray distance traveled
+    dist += posToScene;
+
+    // register hit if close enough to scene
+    if(posToScene &lt; HIT_DIST) {
+      hit = true;
+      break;
     }
 
-    return mengerSpongeDist;
+    // register miss if too far from scene
+    if(posToScene &gt; MISS_DIST) {
+      break;
+    }
+
+    iterations += 1;
+  }
+
+  if(hit) {
+    // simple shading based on ray marching iterations
+    // fading from white (1.0) to black (0.0)
+    vec3 color = vec3(1.0 - (iterations / float(MAX_STEPS));
+
+    // set pixel output value (with 100% opacity)
+    FragColor = vec4(color, 1.0);
+  } else { // miss
+    // dark grey used as miss color
+    const vec3 missColor = vec3(0.2, 0.2, 0.2);
+
+    // set pixel output value (with 100% opacity)
+    FragColor = vec4(missColor, 1.0);
+  }
 }
-            </code></pre>
 
-            <a href="https://www.shadertoy.com/view/3lKSWh">[DEMO: Menger Sponge]</a>
+float sdScene(vec3 rayPos) {
+ // calculate SDF to the scene
+}</code></code></pre>
+          <pre><code><code>#version 320 es
 
-            <br><br><img class="img-fluid" src="images/menger_sponge/image1.png" alt="">
+precision highp float;
 
-            <br><br>Ain’t she a beaut.
+out vec4 FragColor;
 
-            <br><br>If you find this interesting at all, please dive into any of the following additional resources.
-            There are certainly optimizations and other incredibly fun things you can do with ray marching and SDFs.
-            This is really only the beginning. Cheers!
+#define MAX_STEPS 100
+#define MISS_DIST 60.0
+#define HIT_DIST 0.01
 
-            </p>
+uniform vec2 screenResolution;
 
-            <p class="lead">Sources</p>
-            <ul>
-                <li><a href="https://www.iquilezles.org/www/articles/distfunctions/distfunctions.htm">Distance Functions
-                    by Inigo Quilez</a></li>
-                <li><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/mod.xhtml">OpenGL mod
-                    reference</a></li>
-                <li><a href="https://www.youtube.com/watch?v=PGtv-dBi2wE">Ray Marching For Dummies by The Art of
-                    Code</a></li>
-                <li><a href="https://www.youtube.com/watch?v=svLzmFuSBhk">How To Make 3D Fractals by CodeParade</a></li>
-                <li><a href="http://jamie-wong.com/2016/07/15/ray-marching-signed-distance-functions/ ">Ray Marching And
-                    Signed Distance Functions by Jamie Wong</a></li>
-                <li>
-                    <a href="http://hugi.scene.org/online/hugi37/hugi%2037%20-%20coding%20adok%20on%20ray%20casting,%20ray%20tracing,%20ray%20marching%20and%20the%20like.htm">On
-                        ray casting, ray tracing, ray marching and the like by Adok</a></li>
+const vec3 cameraPos = vec3(6.0, 6.0, -6.0);
+
+float sdScene(vec3 rayPos);
+
+void main() {
+  vec2 pixelCoord = gl_FragCoord.xy;
+  pixelCoord -= (0.5 * screenResolution.xy);
+  pixelCoord = pixelCoord / viewPortResolution.y;
+
+  vec3 rayDir = vec3(pixelCoord.x, pixelCoord.y, 1.0);
+  rayDir = normalize(rayDir);
+
+  float dist = 0.0;
+  bool hit = false;
+  int iterations = 0;
+
+  while(iterations &lt; MAX_STEPS) {
+    vec3 pos = cameraPos + (dist * rayDir);
+    float posToScene = sdScene(pos);
+    dist += posToScene;
+    if(posToScene &lt; HIT_DIST) {
+      hit = true;
+      break;
+    }
+    if(posToScene &gt; MISS_DIST) { break; }
+    iterations += 1;
+  }
+
+  if(hit) {
+    vec3 color = vec3(1.0 - (float(iterations) / float(MAX_STEPS)));
+    FragColor = vec4(color, 1.0);
+  } else { // miss
+    const vec3 missColor = vec3(0.2, 0.2, 0.2);
+    FragColor = vec4(missColor, 1.0);
+  }
+}
+
+float sdScene(vec3 rayPos) {
+ // calculate SDF to the scene
+}</code></code></pre>
+          <p>The above code is pure GLSL ES shader code. The GLSL ES code that runs in ShaderToy will look ever so
+          slightly
+          different. Especially in regards to <code>#version</code>, <code>screenResolution</code>,
+          <code>gl_FragCoord</code>,
+          and <code>FragColor</code>. Further understanding of the differences is left as as an exercise to the reader.
+          </p>
+          <p>If it’s your first time using GLSL or fragment shaders or not and the above might is just a little
+          overwhelming, I
+          promise it’s not as scary as it looks. If you don’t understand the above code immediately, that’s okay. It
+          will
+          not
+          hinder your understanding of the rest of the article. There are also additional resources at the end of this
+          article
+          that may aid you in your journey. I’d recommend continuing the article and coming back to re-explore the
+          algorithm.
+          From here on out, we are done speaking on the algorithm. We will only concern ourselves with developing an SDF
+          to a
+          Menger Sponge<code>.</code></p>
+          <h3>Terminology:</h3>
+          <p><em>vec3</em>: A data type in GLSL that is simply an array of 3 floating point values. This data type is
+          often
+          used
+          to represent things like points, vectors, or color values (RGB).&nbsp;</p>
+          <p>“<em>halfwidth</em>”: A value equal to half of a width. Often we will find that it’s more convenient to deal
+          with
+          half the width of an object being rendered. This is analogous to equations that prefer using the radius
+          (halfwidth) of
+          a circle as opposed to the diameter (width).</p>
+          <p>component: A 2D vector has two components(<em>x </em>&amp; <em>y</em>). A 3D vector has three
+          components(<em>x</em>,
+          <em>y</em> &amp; <em>z</em>).
+          </p>
+          <p>GLSL: OpenGL Shading Language. For this article, “OpenGL” is interchangable with “OpenGL ES”, as we will not
+          be
+          using
+          any GLSL features outside the subset of OpenGL ES.</p>
+          <h3>SDF to Point</h3>
+          <p>Ray marching requires the use of signed distance fields (SDFs) to aquire distances between a point and some
+          object.
+          But before we determine the distance between a point and some complex 3D object, let’s first remind ourselves
+          how to
+          find the distance between two points on a 2D plane.</p>
+          <p>Let’s say you have two points, A and B. When you subtract A from B, you get a vector that can “move” point A
+          to
+          point
+          B. It’s possible this sounds unintuitive to you, so here’s a simple way to solidify this concept. Let’s now
+          say
+          that
+          you have two integers +3 and +7. When you subtract +3 from +7, you get the integer +4. This integer is capable
+          of
+          taking +3 to +7. Following this same logic, when you subtract point (-4, -2) from point (-1, 2) you get the
+          vector
+          &lt;3, 4&gt;. Which is a vector that can “move” point (-4, -2) to point (-1, 2). It simply addition and
+          subtraction.
+          </p>
+          <img class="img-fluid rounded" src="https://substack-post-media.s3.amazonaws.com/public/images/587b6a39-7cb2-450d-90e7-b1465c2eaed2_600x400.png"><br><br>
+          <p>Now the distance between two points is fairly simple. If you have a vector &lt;x,y&gt; that takes point A to
+          point B
+          (&lt;x,y&gt; = B - A), then the distance between point A and point B is simply the length of that vector. If
+          you
+          were
+          to draw the vector &lt;x,y&gt;, you’d see that the vector can be viewed as a hypotenuse of a right triangle in
+          which
+          one of our sides is of length x and the other is of length y.</p>
+          <p>So to get the length of a vector, we simply use the Pythagorean theorem, a² + b² = c².</p>
+          <ul>
+            <li>
+              <p>The length a vector &lt;x,y&gt; is equal to sqrt(x² + y²)</p>
+            </li>
+            <li>
+              <p>The length of vector &lt;x, y, z&gt; is equal to sqrt(x² + y² + z²)</p>
+            </li>
+            <li>
+              <p>This pattern can also be extended for all dimensions</p>
+            </li>
           </ul>
-          <div style="height: 200px;"></div>
-        </div>
+          <p>To put it all together, the distance between points A and B can be acquired by calculating the length of the
+          resulting vector when you subtract A from B.</p>
+          <ul>
+            <li>
+              <p>Subtracting B from A acquires the same result. Although the vector will be pointing in the opposite
+              direction, it
+              will be the same length.</p>
+            </li>
+          </ul>
+          <p>The SDF to a point looks something like this:</p>
+          <pre><code>// signed distance to a point
+float sdPoint(vec3 rayPosition, vec3 pointPosition) {   
 
-    </div>
-    <!-- /.row -->
-</div>
-<!-- /.container -->
+  // vector from point to ray
+  vec3 pointToRay = rayPosition - pointPosition;  
 
-<!-- Bootstrap core JavaScript -->
-<script src="vendor/jquery/jquery.min.js"></script>
-<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-<script src="script/dropdown.js"></script>
+  // Pythagorean theorem to get length of vector
+  float distanceToPoint = sqrt(pointToRay.x * pointToRay.x +
+                               pointToRay.y * pointToRay.y +
+                               pointToRay.z * pointToRay.z);
 
-</body>
+  return distanceToPoint;
+}</code></pre>
+          <h3>SDF to Sphere</h3>
+          <p>To acquire the distance from a point (for example: the ray’s current position) to a sphere, we start by
+          calculating
+          the distance between the point and the center of the sphere (another point). When traveling to the center of a
+          sphere,
+          you must first travel to the surface of the sphere and then further travel the sphere's radius to finally
+          reach
+          the
+          center point. So if we want a distance to a sphere, we first get the distance to the center point and then
+          subtract
+          the length of the radius, taking us back to the surface of the sphere.</p>
+          <p>The SDF to a sphere looks something like this:</p>
+          <pre><code>float sdSphere(vec3 rayPosition, vec3 sphereCenterPosition, float radius) {
+  vec3 centerToRay = rayPosition - sphereCenterPosition;
+  float distToCenter = length(centerToRay);
+  float distToSurface = distToCenter - radius;
+  return distToSurface;
+}</code></pre>
+          <p>NOTE: Another name for ray marching is “sphere tracing”. You can think of an SDF as a function that gives the
+          radius
+          for a sphere that is centered at the ray’s position and just barely touches the object or scene represented by
+          the
+          SDF.</p>
+          <p>Let’s learn about some ways that you can manipulate objects through the use of our rays and SDFs.</p>
+          <h3>Translation</h3>
+          <p>One thing I left out while going over the SDF of a sphere is that SDFs will often define the distance to an
+          object
+          that is centered at the origin. And the way you actually position that object into your scene is to simply
+          subtract
+          the object’s desired position from your ray’s position befor sending it to the SDF. By subtracting the
+          object’s
+          desired position, we are transforming the ray’s position to a local coordinate system of the object, in which
+          the
+          object is centered at the origin.&nbsp;</p>
+          <p>On the left side of the diagram below, we show the actual location of the ray as well as the desired location
+          of the
+          circle. Near the middle, we show our ray’s position transformed to the local coordinate system of the circle
+          where the
+          circle’s center sits at the origin. That ray’s position was transformed by simply subtracting the desired
+          location of
+          our circle. Notice that in both scenarios of the diagram, the ray shares the same distance to the circle. This
+          is
+          critical as the SDFs only job is to get an accurate distance to an object.</p>
+          <img class="img-fluid rounded" src="https://substack-post-media.s3.amazonaws.com/public/images/509845ac-e5c4-46c2-9413-7a954922b942_600x400.png"><br><br>
+          <p>This simplifies the logic within the SDF, as it no longer concerns itself with translations of objects. </p>
+          <p>Our new SDF for a sphere and translating that sphere now looks likes this:</p>
+          <pre><code>float sdSphere(vec3 rayPosition, float radius) {
+  float distToCenter = length(rayPosition);
+  float distToSurface = distToCenter - radius;
+  return distToSurface;
+}
+
+// signed distance to a scene
+void sdScene() {
+  // ...
+  vec3 spherePosition = vec3(-5.0, 3.0, 0.0);
+  vec3 distToSphere = sdSphere(rayPosition - spherePosition, 1.0);
+  // ...
+}</code></pre>
+          <h3>Scaling</h3>
+          <p>Similar to translation, the SDF actually doesn’t have to handle the exact dimensions of the object (ex: the
+          radius of
+          a sphere) as we can scale the object to our desired dimensions outside of the SDF. Scaling is a little less
+          obvious
+          than translation but the technique is very easy to remember. Just like translation, we are going to manipulate
+          our
+          ray’s position before sending it to the SDF in order to manipulate our objects.</p>
+          <p>First let’s start with seeing what it is like to scale something up. And really quick, let’s think about what
+          won’t
+          work. If a sphere of radius 1.0 is 2.0 units away, then scaling that sphere up to a radius of 2.0 would mean
+          it
+          is now
+          1.0 unit away. The sphere is twice as big and our distance is now halved. With this example, it would seem we
+          could
+          simply divide the distance to an object by the value we wish to scale it. But take just one more example and
+          we
+          can
+          see this does not hold water. If a sphere of radius 1.0 is <em>3.0 units </em>away, scaling that sphere up to
+          a
+          radius
+          of 2.0 would mean it is now <em>2.0 units</em> away. The sphere is twice as big, but now our distance is
+          2/3rds
+          its
+          original length. Hmmmm...</p>
+          <p>The approach that we are going to take is to pretend the coordinate system that our ray lives in has been
+          shrunken
+          down, while the object represented by the SDF remains unchanged. From the perspective of the ray’s coordinate
+          system,
+          the object has grown. The only problem is that the distance we calculated is the distance in our shrunken
+          coordinate
+          system. In order to correct this, we must map the calculated distance back to our original coordinate system
+          (un-shrink it). So if we shrunk our coordinate system down by 7.0 (in order to scale the object up to 7.0
+          times
+          its
+          original size), the distances we calculated will then need to be multiplied by 7.0 to map it back to the
+          original
+          coordinate system.&nbsp;</p>
+          <p>In the figure below: In black we have the original ray, a unit circle, and the distance between them. In red,
+          we have
+          the desired scaled circle and the desired distance between the scaled circle and the ray.&nbsp;</p>
+          <img class="img-fluid rounded" src="https://substack-post-media.s3.amazonaws.com/public/images/3772debe-599c-4acc-b821-f886da8c4aad_600x400.png"><br><br>
+          <p>In the figure below: In black we have the shrunken down ray, the original circle (“scaled up” from the
+          perspective of
+          the ray), and the distance between them. In red, we have the same distance mapped back to the original
+          coordinate
+          system (un-shrunken).</p>
+          <img class="img-fluid rounded" src="https://substack-post-media.s3.amazonaws.com/public/images/f35bd69c-09b9-4897-86b3-52b9377b92e9_600x400.png"><br><br>
+          <p>Scaling an object down is the exact same approach and left as an exercise for the reader.</p>
+          <p>Our SDF is even simpler than before, as it no longer concerns itself with the scale nor position of the
+          sphere!
+          Taking in only the ray’s position as a parameter.</p>
+          <pre><code>float sdSphere(vec3 rayPosition) {
+  const float radius = 1.0;
+  return length(rayPosition) - radius; 
+}
+
+void sdScene() {
+  // …
+  // sphere's position
+  vec3 p = vec3(-5.0, 3.0, 0.0);
+  // sphere's radius
+  float r = 3.0;
+  vec3 distToSphere = sdSphere((rayPos - p) / r) * r;
+  // …
+}</code></pre>
+          <p>If the SDFs don’t need to worry about the scale of an object, why is the size of <code>radius</code> defined
+          in
+          sdSphere?</p>
+          <p>In order to scale the object defined by the SDF, it has to have *some* initial size (scaling zero up/down is
+          still
+          zero). In this case, the sphere has a radius of 1, or a diameter of 2. That is the number that will be scaled
+          up
+          or
+          down.</p>
+          <h2>Folding</h2>
+          <p>When trying to calculate the distance to an object, we can often simplify the problem by taking advantage of
+          an
+          object’s symmetry. Symmetry is an extremely common property of many primitive shapes. For example: cubes,
+          spheres,
+          cylinders, and toruses can be seen as symmetrical across all axes when centered at the origin and thoughtfully
+          oriented. The figure below shows an object that is symmetrical along both the x and y axes.</p>
+          <img class="img-fluid rounded" src="https://substack-post-media.s3.amazonaws.com/public/images/bb8fa906-e78d-4661-9c34-7b17a41a7269_600x400.png"><br><br>
+          <p>Notice that each point of the same color shares the same distance to the object. This is where folding
+          becomes
+          incredibly useful. Taking the absolute value of the x &amp; y components of any point will map that point to
+          one
+          with
+          the same color in the positive (upper right) quadrant. By taking advantage of the symmetry of our object and
+          the
+          absolute value of our ray’s position, we can allow our SDF to focus solely on finding the distance to our
+          object
+          for
+          points in the positive quadrant.</p>
+          <img class="img-fluid rounded" src="https://substack-post-media.s3.amazonaws.com/public/images/2db5ea3e-dada-4094-8bff-cbd43d585dc7_600x400.png"><br><br>
+          <p>To demonstrate how this can simplify things, let’s look at an SDF for a cube.</p>
+          <h3>SDF to Cube</h3>
+          <p>Let us start with finding the distance to a square. In this example, we are going to use the symmetry of a
+          square to
+          our advantage. We will work exclusively with the absolute values of points. In the figure below, we partition
+          the
+          positive quadrant into four sections to understand the different ways we might calculate the distance to the
+          square.
+          </p>
+          <img class="img-fluid rounded" src="https://substack-post-media.s3.amazonaws.com/public/images/3ccb20d2-f903-4740-a2e1-0be9573be500_600x400.png"><br><br>
+          <p>Let us first take a look at the upper right (yellow) partition. If both our X and Y components are greater
+          than
+          half
+          the width of our square, we simply need to calculate the distance to the corner of our square. With only
+          taking
+          that
+          into consideration, our SDF would look something like this:</p>
+          <pre><code>float sdSquareCornerOnly(vec2 rayPos) {
+  // half initial scale of square
+  const float halfWidth = 1.0;
+  const vec2 corner = vec2(halfWidth, halfWidth);
+  // fold ray into positive quadrant
+  vec2 foldedPos = abs(rayPos);
+  vec2 cornerToRay = foldedPos - corner;
+  return length(cornerToRay);
+}</code></pre>
+          <p>Now, let’s incorporate the upper left (blue) and lower right (purple) sections. Think of the vector pointing
+          from the
+          corner to the upper left point and from the corner to the lower right point (all still within the upper right
+          quadrant). This vector does not represent the shortest path to the square. If any component in our vector from
+          the
+          corner to our ray has a negative value (the x component will be negative when pointing to upper left point,
+          the
+          y
+          component will be negative when pointing to lower right point), we can simply ignore that component in our
+          distance
+          calculation by setting it to zero. The upper point left point simply needs to go down to hit the closest point
+          on the
+          square and the lower right pint simply needs to go left. </p>
+          <p>An updated SDF looks like this:</p>
+          <pre><code>float sdSquareOutsideOnly(vec2 rayPos) {
+  const float halfWidth = 1.0;
+  const vec2 corner = vec2(halfWidth, halfWidth);
+  vec2 foldedPos = abs(rayPos);
+  vec2 cornerToRay = foldedPos - corner;
+
+  // ignore negative components
+  vec2 closestToRay = max(cornerToRay, 0.0); 
+
+  return length(closestToRay);
+}</code></pre>
+          <p>The <code>max()</code> function is a component-wise function, available in GLSL, in which each component of
+          the
+          vector will be the max between its current value and the second parameter passed in (<code>0.0</code> in this
+          case).
+          This effectively clamps all negative values of our vector to <code>0.0</code>. So what does our SDF currently
+          return
+          if we are inside the square? In that case, all components of our vector would be negative and then clamped to
+          <code>(0.0, 0.0)</code>. The length of that vector is zero. The best number to build on.
+          </p>
+          <p>We are only inside the square if all components of the vector pointing from the corner to our ray’s position
+          are
+          negative. Look back at the diagram to verify that that is true. When inside the square, our closest point is
+          the
+          distance to either the left or right walls. These currently exist as the component values in our
+          <code>cornerToRay</code> vector.
+          </p>
+          <p>This is a good time to explain the “Signed” in an “Signed Distance Field”. An SDF should return a positive,
+          non-zero,
+          value when a point is outside its defining shape. It should return a negative, non-zero, value when a point is
+          inside
+          its defining shape. And it should return zero when a point lies exactly on the surface of its defining shape.
+          </p>
+          <p>In everyday math, the minimum of -5 &amp; -3 is -5. That is how the <code>min</code> functions works in any
+          code you
+          will ever see and it works in GLSL. But, since we are calculating the shortest distance to some object defined
+          by the
+          SDF, -3 units is actually a <em>smaller signed distance</em> than -5 units.</p>
+          <p>Back to our inner, lower left point… Since the vector from the corner to the point is negative for both x
+          &amp;
+          y
+          components, we take the <em>maximum </em>of these values to find the minimum <em>signed</em> distance. </p>
+          <p>With this additional information, let’s finish our SDF.</p>
+          <pre><code>float sdSquare(vec2 rayPos) {
+  const float halfWidth = 1.0;
+  const vec2 corner = vec2(halfWidth, halfWidth);
+  vec2 foldedPos = abs(rayPos);
+  vec2 cornerToRay = foldedPos - corner;
+  vec2 closestToOutsideRay = max(cornerToRay, 0.0);
+
+  // Acquire max component
+  float cornerToRayMaxComponent = max(cornerToRay.x, cornerToRay.y);
+
+  // If the max component is a positive value, clamp it to zero
+  float distToInsideRay = min(cornerToRayMaxComponent, 0.0);
+
+  // return either the distance to outside OR distance to inside
+  return length(closestToOutsideRay) + distToInsideRay;
+}&nbsp;</code></pre>
+          <p>The addition at the end is made possible as <code>distToInsideRay</code> will be equal to <code>0.0</code> if
+          the ray
+          exists outside of the square and, as discussed before, the <code>closestToOutsideRay</code> will be equal to
+          <code>0.0</code> if the ray exists inside of the square. In other words, at least one operand of the final
+          addition is
+          guaranteed to be <code>0.0</code>. Meaning the returning value will be <em>either</em> the length of
+          <code>closestToOutsideRay</code> <em>or</em> <code>distToInsideRay</code>.
+          </p>
+          <p>The SDF to a cube uses all the same logic as just described, but adding one more dimension. The SDF can be
+          represented as the following:</p>
+          <pre><code>float sdCube(vec3 rayPos) {
+  // half initial scale of square (arbitrary)
+  const float halfWidth = 1.0;
+  const vec3 corner = vec3(halfWidth, halfWidth, halfWidth);
+
+  // fold ray into positive octant
+  vec3 foldedPos = abs(rayPos);
+  // corner to ray
+  vec3 ctr = foldedPos - corner;
+
+  // ignore negative components for outside points
+  vec3 closestToOutsideRay = max(ctr, 0.0);
+
+  // Acquire max component
+  float cornerToRayMaxComponent = max(max(ctr.x, ctr.y), ctr.z);
+
+  // If the max component is a positive value, clamp to zero
+  float distToInsideRay = min(cornerToRayMaxComponent, 0.0);
+
+  // return either the distance to outside OR distance to inside
+  return length(closestToOutsideRay) + distToInsideRay;
+}&nbsp;</code></pre>
+          <h3>SDF to Infinite Cross</h3>
+          <p>We now have all the tools needed to create an infinite cross. You could think of creating an infinite cross
+          by
+          starting with our <code>sdCube</code> and simply extruding each face out infinitely. The diagram below shows a
+          2D
+          representation of our infinite cross. As you can see, our distance formula for each of the points has changed
+          quite a
+          bit. Three of our four original points are now within the object with only one outside.</p>
+          <img class="img-fluid rounded" src="https://substack-post-media.s3.amazonaws.com/public/images/3b0cb5b2-bff8-46a6-8367-de51cf863939_600x400.png"><br><br>
+          <p>Although the distance functions to each point have changed, the equations don’t look too foreign. Let’s start
+          by
+          covering the distance to the lower left (red) point. Again, as a reminder, we are folding space through
+          absolute
+          value
+          function and are only concerned with the upper right quadrant. The closest distance to the lower left (red)
+          point is
+          clearly the corner and we’ve already seen this distance calculation before.</p>
+          <pre><code>float sdCrossInnerCornerOnly(vec2 rayPos) {
+  const float halfWidth = 1.0;
+  const vec2 corner = vec2(halfWidth, halfWidth);
+  vec2 foldedPos = abs(rayPos);
+  vec2 cornerToRay = foldedPos - corner;
+  // when inside, distances are negative
+  return -length(cornerToRay);
+}</code></pre>
+          <p>A signed distance field returns positive values when a point is outside of the object and negative values
+          when
+          it is
+          inside of the object. SDFs return a <em>signed </em>value but the length of a vector is always a positive
+          value.
+          In
+          this case, our point is inside the cross, so a simple negation solves our problem.</p>
+          <p>Things continue to look similar approach as we did with the <code>sdSquare</code>. With
+          <code>sdSquare</code>,
+          <code>the</code> upper left (blue) and lower right (purple) points were defined by their distances to the
+          horizontal
+          and vertical edge, respectively. Interestingly, when finding the distance to this infinite cross, their
+          concerns
+          have
+          swapped. The upper left point’s smallest distance lies on the vertical edge, and the lower right point’s
+          smallest
+          distance lies on the horizontal edge. In the <code>sdSquare</code>, negative values in the
+          <code>cornerToRay</code>
+          vector are clamped to zero. In our <code>sdCross</code>, the positive values are clamped to zero. The same
+          <code>cornerToRay</code> vector is used for both SDFs, but with components that are clamped differently.
+          </p>
+          <pre><code>float sdCrossInnerOnly(vec2 rayPos) {
+  const float halfWidth = 1.0;
+  const vec2 corner = vec2(halfWidth, halfWidth);
+  vec2 foldedPos = abs(rayPos);
+  vec2 cornerToRay = foldedPos - corner;
+
+  // ignore positive components for inside points
+  vec2 closestInsidePoint = min(cornerToRay, 0.0);
+
+  return -length(closestInsidePoint);
+}</code></pre>
+          <p>So far our SDF covers all of the possible points that reside within the cross itself, for which the SDF would
+          return
+          a negative value. All that remains is the positive distances. As we saw in our last diagram, the distance to a
+          point
+          outside of the cross is simply the difference between the smallest component of our point and half the width
+          of
+          the
+          cross. Which is just smallest component of the <code>cornerToRay</code> vector.</p>
+          <pre><code>float sdCross(vec2 rayPos) {
+  const float halfWidth = 1.0;
+  const vec2 corner = vec2(halfWidth, halfWidth);
+  vec2 foldedPos = abs(rayPos);
+  vec2 cornerToRay = foldedPos - corner;
+  vec2 closestInsidePoint = min(cornerToRay, 0.0);
+
+  // acquire min component
+  float minComponent = min(cornerToRay.x, cornerToRay.y);
+
+  // If min component is negative, clamp to zero
+  float distToOutsidePoint = max(minComponent, 0.0);
+
+  // return either the distance to inside OR outside
+  return -length(closestInsidePoint) + distToOutsidePoint;
+}</code></pre>
+          <p>In order for a point to exist outside of the cross, both components must have a value greater than the
+          <code>halfWidth</code> of our cross. Subtracting the corner from our point subtracts the halfwidth from both
+          components. If the minimum component is greater than <code>0.0</code>, they both are and the distance is the
+          minimum
+          component. Otherwise, we are inside the cross and our previous calculated distance is desired. As with
+          sdSquare,
+          the
+          final addition serves more as an either/or, as one of the operands is guaranteed to be <code>0.0</code>.
+          </p>
+          <p>Adding one more dimension to the cross isn’t incredibly obvious, so let’s talk about it a bit. For the 2D
+          “infinite
+          cross”, we determined that the ray was outside of the cross if both components were greater than half the
+          width
+          of the
+          cross and the ray was inside of the cross otherwise. What do the regions look like for a 3D infinite cross?
+          And
+          what
+          do I mean by a 3D “infinite cross”?</p>
+          <p>Our definition for a 2D infinite cross is a square in which each face has been extruded out infinitely. Our
+          definition for a 3D infinite cross is a <em>cube</em> in which each face has been extruded out infinitely.</p>
+          <img class="img-fluid rounded" src="https://substack-post-media.s3.amazonaws.com/public/images/ceedbfa5-6ba1-4c61-89a0-defd5da65290_1600x899.png"><br><br>
+          <p>For our 2D infinite cross we had three unique locations that a ray could be:&nbsp;</p>
+          <ol>
+            <li>
+              <p>Inside the original square. This occurs when both components are smaller than the halfwidth. Closest is
+              the
+              distance to the inner corner (negated).</p>
+            </li>
+            <li>
+              <p>Inside the extruded face that extends in the x direction. This occurs when only the y-component is
+              smaller
+              than
+              the halfwidth. Closest distance is the y component minus the halfwidth.</p>
+            </li>
+            <li>
+              <p>Inside the extruded face that extends in the y direction. This occurs when only the x-component is
+              smaller
+              than
+              the halfwidth.Closest distance is the x component minus the halfwidth.</p>
+            </li>
+            <li>
+              <p>Outside of the cross. This occurs when both components are larger than the halfwidth. Closest distance is
+              the
+              smallest component.</p>
+            </li>
+          </ol>
+          <img class="img-fluid rounded" src="https://substack-post-media.s3.amazonaws.com/public/images/e9a86ea8-5cb6-49e1-807a-8ac02e0af0a2_1600x899.png"><br><br>
+          <p>NOTE: For the 3D infinite cross, we are folding space into the positive octant and we can think about this
+          problem
+          only in terms of the positive octant. If you find yourself thinking about what happens with negative
+          coordinates...don’t! The symmetry of the object across all axes means we can fold everything into the positive
+          octant
+          using absolute values, create an algorithm for all points within the single octant, and ignore all other
+          cases!
+          </p>
+          <p>For our 3D infinite cross, we have <em>five</em> unique locations:</p>
+          <ol>
+            <li>
+              <p>Inside the original cube. This occurs when all components are less than the <code>halfwidth</code>.
+              Closest
+              is
+              the distance to the nearest inner edge (negated). Take note, the center is *not* a cube constructed of six
+              faces.
+              It is a cube constructed of 12 edges. It is only a skeleton of a cube. An the distances we are interested
+              in
+              is
+              the distance between a point and one of those 12 edges. If you imagine each edge as corners on a
+              2-dimensional
+              plane, you may notice that the nearest edge is determined by the largest two components of our ray’s
+              3-dimensional
+              position.&nbsp;</p>
+            </li>
+            <li>
+              <p>Inside the extruded face that extends in the x direction. This occurs when only the x component is larger
+              than
+              the <code>halfwidth</code>. The closest distance can be framed as the inside of a square on the yz-plane.
+              Closest
+              distance is <code>max(y,z)</code> minus the <code>halfwidth</code>.</p>
+            </li>
+            <li>
+              <p>Inside the extruded face that extends in the y direction. This occurs when only the y component is larger
+              than
+              the <code>halfwidth</code>. The closest distance can be framed as the inside of a square on the xz-plane.
+              Closest
+              distance is <code>max(x,z)</code> minus the <code>halfwidth</code>.</p>
+            </li>
+            <li>
+              <p>Inside the extruded face that extends in the z direction.&nbsp; This occurs when only the z component is
+              larger
+              than the <code>halfwidth</code>. The closest distance can be framed as the inside of a square on the
+              xy-plane.
+              Closest distance is <code>max(x,y)</code> minus the <code>halfwidth</code>.</p>
+            </li>
+            <li>
+              <p>Outside of the cross. This occurs when two or more components are larger than the <code>halfwidth</code>.
+              The
+              closest distance is to the closest extruded face. The closest extruding face is actually the face
+              extruding
+              in the
+              direction of the largest component and the distance to that extruded face is a factor of the two smallest
+              components.</p>
+            </li>
+          </ol>
+          <p>Let’s think about #5, outside of the cross, a bit more. Moving in the x direction can be seen as moving
+          parallel to
+          the extruded face in the x direction and perpendicular to both the extruded faces in the y &amp; z directions.
+          This
+          means that moving along in the x-direction has no effect on the distance the the extruded face in the x
+          direction,
+          while increasing the distance from the extruded faces in the y &amp; z directions. This is sort of like a
+          game,
+          where
+          the largest component pushes the point further from the other two extruded face, that its own extruded face
+          “wins” as
+          holding the closest distance to the point. And the fact that moving along the x-axis is moving parallel to the
+          extruded face in the x-direction means it cannot also be a factor in determining the distance to that same
+          extruded
+          face.</p>
+          <pre><code>float sdCross(vec3 rayPos) {
+  const float halfWidth = 1.0;
+  const vec3 corner = vec3(halfWidth, halfWidth, halfWidth);
+  vec3 foldedPos = abs(rayPos);
+
+  // corner to ray
+  vec3 ctr = foldedPos - corner;
+
+  // isolate minimum/maximum components
+  float minComp = min(min(ctr.x, ctr.y), ctr.z);
+  float maxComp = max(max(ctr.x, ctr.y), ctr.z);
+
+  // fancy way to acquire middle component
+  float midComp = ctr.x + ctr.y + ctr.z - minComp - maxComp;
+
+  // Handles: #1, #2, #3, #4
+  vec2 closestOutsidePoint = max(vec2(smallestComp, middleComp), 0.0);
+  // Handles: #5
+  vec2 closestInsidePoint = min(vec2(middleComp, largestComp), 0.0);
+
+  // return either the distance to inside OR outside
+  return length(closestOutsidePoint) + -length(closestInsidePoint);
+}</code></pre>
+          <h3>Infinitely Repeating Space</h3>
+          <p>Another very powerful tool in ray marching is the modulo operator. If unfamiliar, the modulo operator
+          (commonly
+          denoted as ‘mod’ or ‘%’) simply returns the remainder of some division. For example, if you divide 11 by 4,
+          you
+          get 2
+          with a remainder of 3. So 11 mod 4 is 3.</p>
+          <p>The figure below shows what happens if you use mod 3 to transform the x &amp; y components of various points.
+          It
+          divides our original single unbounded coordinate system into infinite <em>bounded</em> coordinate systems that
+          range
+          from [0, 3.0) for each axis. The diagram shows how our original coordinate system is cut into slices. Each
+          slice
+          will
+          be mapped to the highlighted region. To further demonstrate, the modulo operator will map each point to the
+          point with
+          the same color in the highlighted region.&nbsp;</p>
+          <img class="img-fluid rounded" src="https://substack-post-media.s3.amazonaws.com/public/images/acab3f1a-8b4e-4a44-839f-e3aa47a828f7_600x400.png"><br><br>
+          <p>NOTE: The modulo operator is actually not defined for negative numbers. It is very possible that the mod
+          operator on
+          your platform does not produce the same results as seen in the above diagram.</p>
+          <ul>
+            <li>
+              <p>In GLSL, <code>mod(x, y)</code> is defined as <code>x - (y * floor(x/y))</code>. If curious, you can play
+              around
+              with this to see that it produces the results we desire (infinitely repeating identical bounded coordinate
+              spaces). If you’re playing around with the modulo operator outside of GLSL and things don’t look right,
+              this
+              could
+              be your problem. To verify it is your problem, simply replace the modulo operator with the GLSL definition
+              as
+              stated above.&nbsp;</p>
+            </li>
+          </ul>
+          <p>One minor annoyance you might’ve noticed with our boxed coordinate systems is that the origins are now in the
+          lower
+          left corner. To get an origin at the center, we simply subtract half of the length of our boxed coordinate
+          system.</p>
+          <p>In the figure above, we are performing mod 3 on the x &amp; y components of our ray’s position</p>
+          <p>In the figure below, we are doing the same and then subtracting 1.5 (half of 3).</p>
+          <img class="img-fluid rounded" src="https://substack-post-media.s3.amazonaws.com/public/images/e6524616-6810-4d81-961b-aaf811e9bbb1_600x400.png"><br><br>
+          <p>Two things to note. There is no longer a “true” slice that remains unchanged. Our coordinate system now goes
+          from
+          [-1.5, 1.5), where the lower boundaries are included and the upper is excluded. This may have felt more
+          intuitive when
+          the included lower boundaries were zero, but it’s good to remember it’s still true here as well.</p>
+          <p>There is nothing special about using the modulo operator in two dimensions. Two dimensional diagrams are
+          simply
+          easier to draw and get a feeling for. In three-dimensional space, modulo creates infinite bounded coordinate
+          systems
+          that resemble the shape of a box/cube, as opposed to a rectangle/square.</p>
+          <h3>Boolean Operations (Subtraction, Intersection, Union)</h3>
+          <p>Our last step before diving straight into creating our Menger Sponge is understanding how to combine
+          primitive
+          shapes
+          to create more complex objects. The operations we are going to look at will be subtracting one shape from
+          another, the
+          union of two shapes, and the intersection of two shapes.</p>
+          <img class="img-fluid rounded" src="https://substack-post-media.s3.amazonaws.com/public/images/9d049891-801d-47b7-b2db-c5ff15798b44_600x400.png"><br><br>
+          <p>Let’s first take an effort to analyze the picture above. We have two shapes that intersect each other, a
+          circle
+          and a
+          square. We also have 5 points representing 5 regions with unique signed distances to each of the two shapes.
+          </p>
+          <ul>
+            <li>
+              <p>P1: Positive distance to both, where <code>sdCircle()</code> &lt; <code>sdSquare()</code>.</p>
+            </li>
+            <li>
+              <p>P2: Negative distance to circle. Positive to square. <code>sdCircle()</code> &lt;
+              <code>sdSquare()</code>.
+              </p>
+            </li>
+            <li>
+              <p>P3: Negative distance to both.</p>
+            </li>
+            <li>
+              <p>P4: Positive distance to circle. Negative to square. <code>sdSquare()</code> &lt;
+              <code>sdCircle()</code>.
+              </p>
+            </li>
+            <li>
+              <p>P5: Positive distance to both, where <code>sdSquare()</code> &lt; <code>sdCircle()</code>.</p>
+            </li>
+          </ul>
+          <p>The operations we will use to combine objects together are imperfect and we will encounter a limitation that
+          we
+          have
+          not seen before. The signed distance resulting from a point being in the interior of a combined object will
+          not
+          be
+          correct. For our purposes, this will be perfectly fine. When rendering via ray marching, it is already in our
+          best
+          interest to not cast rays inside of objects. The ray should either hit the surface or miss. It should not pass
+          through
+          an object into it’s interior. </p>
+          <p>To learn more about the inferiority of these SDF Boolean operations, <a
+            href="https://iquilezles.org/articles/interiordistance/">Inigo Quilez (creator of ShaderToy and an immense
+            contributor to ray marching &amp; SDFs) wrote an article on this exact topic which I’d consider bookmarking
+            for
+            later reading.</a></p>
+          <h4>Union</h4>
+          <pre><code>float union = min(sdShape1(rayPos), sdShape2(rayPos))</code></pre>
+          <img class="img-fluid rounded" src="https://substack-post-media.s3.amazonaws.com/public/images/6fcc25b1-335f-4f2e-a9f3-16ff41f70280_600x400.png"><br><br>
+          <ul>
+            <li>
+              <p>P1: <code>sdCircle()</code> is positive and a smaller distance than <code>sdSquare()</code>, so the
+              distance to
+              the circle will be used.</p>
+            </li>
+            <li>
+              <p>P2: Inside union, not well defined.</p>
+            </li>
+            <li>
+              <p>P3: Inside union, not well defined.</p>
+            </li>
+            <li>
+              <p>P4: Inside union, not well defined.</p>
+            </li>
+            <li>
+              <p>P5: <code>sdSquare()</code> is a smaller distance than <code>sdCircle()</code>, so the distance to the
+              distance
+              to the square will be used.</p>
+            </li>
+          </ul>
+          <img class="img-fluid rounded" src="https://substack-post-media.s3.amazonaws.com/public/images/8d8b8715-8785-4271-a8de-0cb6f19759ad_600x400.gif"><br><br>
+          <h4>Subtraction </h4>
+          <pre><code>float subtraction = max(-sdShape1(ray), sdShape2(ray))</code></pre>
+          <img class="img-fluid rounded" src="https://substack-post-media.s3.amazonaws.com/public/images/e6970f48-0384-4a74-843b-ee1209022063_600x400.png"><br><br>
+          <ul>
+            <li>
+              <p>P1: <code>sdSquare()</code> is a positive distance and <code>-sdCircle()</code> is a negative distance,
+              so
+              the
+              distance to the square will be used.</p>
+            </li>
+            <li>
+              <p>P2: <code>-sdCircle()</code> and <code>sdSquare()</code> are both positive distances, so the largest
+              distance
+              will be used.</p>
+            </li>
+            <li>
+              <p>P3: <code>-sdCircle()</code> is a positive distance and <code>sdSquare()</code> is a negative distance,
+              so
+              the
+              <code>-sdCircle()</code> will be used.
+              </p>
+            </li>
+            <li>
+              <p>P4: Inside subtraction, not well defined.</p>
+            </li>
+            <li>
+              <p>P5: <code>sdSquare()</code> is a larger distance than <code>-sdCircle</code>, so the distance to the
+              square
+              will
+              be used.</p>
+            </li>
+          </ul>
+          <img class="img-fluid rounded" src="https://substack-post-media.s3.amazonaws.com/public/images/2d643e19-e586-4aaf-8e2d-4761ced19c18_600x400.gif"><br><br>
+          <h4>Intersection</h4>
+          <pre><code>float intersection max(sdShape1(ray), sdShape2(ray))</code></pre>
+          <img class="img-fluid rounded" src="https://substack-post-media.s3.amazonaws.com/public/images/fdf0d100-0b8e-4407-8094-ceeec1eb108e_600x400.png"><br><br>
+          <ul>
+            <li>
+              <p>P1: <code>sdSquare()</code> is a larger distance than <code>sdCircle()</code>, so the distance to the
+              square will
+              be used.</p>
+            </li>
+            <li>
+              <p>P2: <code>sdSquare()</code> is a positive distance and <code>sdCircle()</code> is a negative distance, so
+              the
+              distance to the square will be used.</p>
+            </li>
+            <li>
+              <p>P3: Inside subtraction, not well defined.</p>
+            </li>
+            <li>
+              <p>P4: <code>sdCircle()</code> is a positive distance and <code>sdSquare()</code> is negative, so the
+              distance
+              to
+              the circle is used.</p>
+            </li>
+            <li>
+              <p>P5: <code>sdCircle()</code> is a larger distance than <code>sdSquare()</code>, so the distance to the
+              circle is
+              used.</p>
+            </li>
+          </ul>
+          <img class="img-fluid rounded" src="https://substack-post-media.s3.amazonaws.com/public/images/dcf419c1-e760-4656-8ddf-922d723a46b6_600x400.gif"><br><br>
+          <h3>Menger Sponge: Iteration 1</h3>
+          <p>We are going to move forward with creating the sponge in very explicit steps. For starters, lets create an
+          infinite
+          cross that is as wide as our soon-to-be Menger Sponge. We will bound it within a box that is twice the width
+          of
+          the
+          cross. This bounding box is used simply to get a better idea of what we are working with. The code and
+          resulting
+          image
+          look something like this.</p>
+          <pre><code>float sdBoundedCross(vec3 rayPos) {
+&nbsp;&nbsp;float boundingBoxDist = sdCube(rayPos / 2.0) * 2.0;
+&nbsp;&nbsp;float crossDist = sdCross(rayPos);
+&nbsp;&nbsp;float sdIntersection = max(boundingBoxDist, crossDist);
+&nbsp;&nbsp;return sdIntersection;
+}</code></pre>
+          <img class="img-fluid rounded" src="https://substack-post-media.s3.amazonaws.com/public/images/b9ac35e3-85b5-4d79-8dc7-c5a679c4ea44_1600x900.png"><br><br>
+          <p>For the first iteration of the Menger Sponge, we need to subtract a cross that is a third the width of the
+          Sponge
+          itself and is properly aligned with the center of each face. With that in mind, let’s skinny up our cross to
+          one
+          third
+          of the Sponge’s dimensions.</p>
+          <pre><code>float sdBoundedCrossSlimmed(vec3 rayPos) {
+&nbsp;&nbsp;const float oneThird = 1.0 / 3.0;
+&nbsp;&nbsp;float boundingBoxDist = sdCube(rayPos / 2.0) * 2.0;
+&nbsp;&nbsp;float crossDist = sdCross(rayPos / oneThird ) * oneThird;
+&nbsp;&nbsp;float sdIntersection = max(boundingBoxDist, crossDist);
+&nbsp;&nbsp;return sdIntersection;
+}</code></pre>
+          <img class="img-fluid rounded" src="https://substack-post-media.s3.amazonaws.com/public/images/362b702f-bbd7-41d0-8eb2-eaefb4d42890_1600x900.png"><br><br>
+          <p>Now to make things a little clearer, let’s draw the outermost cube of the Sponge and take a union with what
+          we
+          have.
+          </p>
+          <pre><code>float sdBoundedCrossWithBox(vec3 rayPos) {
+&nbsp;&nbsp;float boundingBoxDist = sdCube(rayPos / 2.0) * 2.0;
+&nbsp;&nbsp;float crossDist = sdCross(rayPos / 3.0) * 3.0;
+&nbsp;&nbsp;float intersection = max(boundingBoxDist, crossDist);
+&nbsp;&nbsp;float spongeBox = sdCube(rayPos);
+&nbsp;&nbsp;float sdBoxCrossUnion = min(intersection, spongeBox);
+&nbsp;&nbsp;return sdBoxCrossUnion;
+}</code></pre>
+          <img class="img-fluid rounded" src="https://substack-post-media.s3.amazonaws.com/public/images/098e5bfd-d2bd-413a-929c-7fffed10adcf_1600x900.png"><br><br>
+          <p>If you are familiar with your basic boolean operations, it’s already obvious that we simply should have
+          performed a
+          subtraction to get the first iteration of our Menger Sponge. While we’re at it, we’ll remove the bounding box,
+          as it
+          no longer serves as a visual helper.</p>
+          <pre><code>float sdMengerSpongeIteration1(vec3 rayPos) {
+&nbsp;&nbsp;const float oneThird = 1.0 / 3.0;
+&nbsp;&nbsp;float crossDist = sdCross(rayPos / oneThird) * oneThird;
+&nbsp;&nbsp;float spongeBox = sdCube(rayPos);
+  float sdSubtraction = max(spongeBox, -crossDist);
+&nbsp;&nbsp;return sdSubtraction;
+}</code></pre>
+          <img class="img-fluid rounded" src="https://substack-post-media.s3.amazonaws.com/public/images/d557569c-87ff-44fa-bf18-6dccc37471fa_1600x900.png"><br><br>
+          <p>And a little peek inside...</p>
+          <img class="img-fluid rounded" src="https://substack-post-media.s3.amazonaws.com/public/images/0dae7ca4-3b5f-4b94-b768-feb06a563872_1600x900.png"><br><br>
+          <h3>Menger Sponge: Iteration 2</h3>
+          <p>So that’s how you do it once. But how do we do it iteratively? Well let us start by thinking exactly what we
+          want.
+          The first iteration is taking the full box, cutting each dimension into thirds resulting in 27 equal sized
+          boxes,
+          removing the 6 boxes in the center of each face, as well as the one box in the very center. The second
+          iteration, we
+          take the remaining 20 boxes and perform the same operations (cutting into 27 equal boxes &amp; removing). We
+          then
+          perform those operations on the remaining 400 boxes and so on.<br><br>As a step in the right direction, let’s
+          see what
+          it looks like to simply cut a box into those 27 equal sized boxes. As you might imagine, the answer is not
+          manually
+          finding the distance to 27 hard-coded boxes. For this we are going to take advantage of the modulo operator to
+          convert
+          our single infinite space into infinite, repeating, bounded spaces. Let’s start out with just creating a bunch
+          of
+          boxes with modulo.</p>
+          <pre><code>float sdBoundedBoxFieldBroken(vec3 rayPos) {
+&nbsp;&nbsp;float boundingBox = sdCube(rayPos / 3.9) * 3.9;
+  // transform space from single unbounded space
+  // to infinite bounded spaces in range of [0.0, 2.0)
+&nbsp;&nbsp;vec3 repeatingPos = mod(rayPos, 2.0);
+&nbsp;&nbsp;float cubeDist = sdCube(repeatingPos / 1.5) * 1.5;
+  float sdIntersection = max(cubeDist, boundingBox);
+&nbsp;&nbsp;return sdIntersection;
+}</code></pre>
+          <img class="img-fluid rounded" src="https://substack-post-media.s3.amazonaws.com/public/images/8affb5b0-8d0c-41e9-8963-8f95de179638_1600x900.png"><br><br>
+          <p>The modulo simply cuts the world into infinite boxes that are all of width 2.0 units. Within each of these
+          reapeating
+          “boxed worlds”, we draw a slightly smaller box. There’s a decent problem though. Which can be demonstrated by
+          choosing
+          a not-so-nice bounding box scale, and taking a look from another angle.</p>
+          <pre><code>float sdBoundedBoxFieldBroken(vec3 rayPos) {
+  // slight change in bounding box scale
+&nbsp;&nbsp;float boundingBox = sdCube(rayPos / 4.0) * 4.0;
+&nbsp;&nbsp;vec3 repeatingPos = mod(rayPos, 2.0);
+&nbsp;&nbsp;float dist = sdCube(repeatingPos / 1.5) * 1.5;
+  float sdIntersection = max(dist, boundingBox);
+  return sdIntersection;
+}</code></pre>
+          <img class="img-fluid rounded" src="https://substack-post-media.s3.amazonaws.com/public/images/2ef8ac13-d610-4561-b384-a6c57a9e8c80_1600x900.png"><br><br>
+          <p>More like <code>sdJankyBoundedBoxField()</code>, amirite?? It’s not what we want but it is still pretty cool,
+          huh?!
+          </p>
+          <p>So our problem is that when performing our modulo operator, we are correctly cutting the space into boxes
+          with
+          width
+          equal to 2 units. The problem is our coordinate system has all axes going from [0, 2) but our SDFs return the
+          distance
+          to a box at the origin. Currently, the boxes we are rendering are “bleeding” out of their spaces past the
+          origin
+          of
+          the boxed worlds and causing all sorts of strange artifacts. </p>
+          <p>What we need to do to correct the situation is modify things slightly so the origins of each of our boxed
+          worlds
+          reside in the center. We just subtract half of their width and instead of coordinate systems where each axis
+          goes from
+          [0, 2), we have coordinate systems that go from [-1, 1).</p>
+          <pre><code>float sdBoundedBoxField(vec3 rayPos) {
+&nbsp;&nbsp;float boundingBox = sdCube(rayPos / 4.0) * 4.0;
+&nbsp;&nbsp;vec3 repeatingPos = mod(rayPos, 2.0);
+  // transform repeating space range from [0,2) to [-1, 1)
+&nbsp;&nbsp;repeatingPos -= 1.0;
+&nbsp;&nbsp;float dist = sdCube(repeatingPos / 0.8) * 0.8;
+  float sdIntersection = max(dist, boundingBox);
+  return sdIntersection;
+}</code></pre>
+          <img class="img-fluid rounded" src="https://substack-post-media.s3.amazonaws.com/public/images/954ee180-870c-43a5-a032-347ec71a5946_1600x900.png"><br><br>
+          <p>Bada bing, bada boom. We got ourself a proper box field.</p>
+          <p>Now that we have a bunch of cubes, let’s try to narrow them down to just the 27 that we need.</p>
+          <pre><code>float sdTwentySevenBoxesKinda(vec3 rayPos) {
+&nbsp;&nbsp;// bounding box spans all axes between [-1.0, 1.0]
+&nbsp;&nbsp;float boundingBox = sdCube(rayPos);
+
+  // sdCube() defines a cube with a halfwidth of 1, or a
+  // width of 2 units.
+  const float cubeWidth = 2.0;
+
+&nbsp;&nbsp;// Transform space into infinite cube spaces with
+  // dimensions in range of [0, 2/3).
+&nbsp;&nbsp;float boxedWorldDimen = cubeWidth / 3.0;
+&nbsp;&nbsp;vec3 repeatingPos = mod(rayPos, boxedWorldDimen);
+
+&nbsp;&nbsp;// move origin in cube space from corner to center
+&nbsp;&nbsp;// now with a range between [-1/3, 1/3)
+&nbsp;&nbsp;repeatingPos -= (boxedWorldDimen / 2.0);
+
+&nbsp;&nbsp;// Stretch repeated spaces from [-1/3, 1/3) to [-1.0, 1.0)
+&nbsp;&nbsp;repeatingPos *= 3.0;
+
+&nbsp;&nbsp;// Shrink the cubes slightly to reveal gaps between them
+&nbsp;&nbsp;float dist = sdCube(repeatingPos / 0.9) * 0.9;
+
+&nbsp;&nbsp;// Acquire actual distance with correction to prev stretch
+&nbsp;&nbsp;dist /= 3.0;
+
+  float sdIntersection = max(dist, boundingBox);
+&nbsp;&nbsp;return sdIntersection;
+}</code></pre>
+          <img class="img-fluid rounded" src="https://substack-post-media.s3.amazonaws.com/public/images/068295c7-d8af-43b9-badb-25413eb9b5c0_1600x900.png"><br><br>
+          <p>Pretty close, but it looks like we have another problem. We have the right sized boxes. They are all stacked
+          properly. But some of them are cut strange and how can we create a Menger Sponge if there are no center boxes
+          to
+          cut
+          out? The problem is that they are not aligned how we would like them. The boxes are currently aligned to run
+          alongside
+          each axis. I’m going to perform an intersection with cross to give us a nice visual of what is going wrong
+          here.&nbsp;
+          </p>
+          <pre><code>float sdTwentySevenBoxesCross(vec3 rayPos) {
+&nbsp;&nbsp;float boundingBox = sdCube(rayPos);
+  const float cubeWidth = 2.0;
+&nbsp;&nbsp;float boxedWorldDimen = cubeWidth / 3.0;
+&nbsp;&nbsp;vec3 repeatedPos = mod(rayPos, boxedWorldDimen);
+&nbsp;&nbsp;repeatedPos -= (boxedWorldDimen) / 2.0;
+&nbsp;&nbsp;repeatedPos *= 3.0;
+&nbsp;&nbsp;float boxesDist = sdCube(ray / 0.9) * 0.9;
+&nbsp;&nbsp;boxesDist /= 3.0;
+&nbsp;&nbsp;float boxesIntersection = max(boxesDist, boundingBox);
+
+&nbsp;&nbsp;// Cross that runs along the axes
+&nbsp;&nbsp;float crossDist = sdCross(rayPos / 0.25) * 0.25;
+  float sdIntersection = max(boxesDist, crossDist);
+&nbsp;&nbsp;return sdIntersection;
+}</code></pre>
+          <img class="img-fluid rounded" src="https://substack-post-media.s3.amazonaws.com/public/images/e969e595-80e3-4ca0-ba35-ec368ddba464_1600x900.png"><br><br>
+          <p>As you can see here, the modulo operator has our “box worlds” aligned in such a way that eight of them have
+          corners
+          touching the origin and anywhere else along the axes will be surrounded by four box worlds. In order to align
+          the
+          boxes with one box centered at the origin, we will have to translate the boxes accordingly.</p>
+          <p>Hopefully at this point you understand that there aren’t actually a finite amount of boxes. We created a
+          never
+          ending
+          world of boxes and are only showing the boxes that intersect with our bounding box, through the use of an
+          intersection
+          with a cross. Since we have infinite boxes, there are actually many different ways we could translate these
+          cubes to
+          get what we want. We just need <em>a</em> center cube and any would work. For our case though, we are going to
+          go
+          ahead and translate the first cube that lies in the positive octant of our world (between &lt;0, 0, 0&gt;
+          &amp;
+          &lt;2/3, 2/3, 2/3&gt;) to the center position.</p>
+          <pre><code>float sdTwentySevenBoxes(vec3 rayPos) {
+&nbsp;&nbsp;float boundingBox = sdCube(rayPos);
+  const float cubeWidth = 2.0;
+&nbsp;&nbsp;float boxedWorldDimen = cubeWidth / 3.0;
+
+&nbsp;&nbsp;// We want to translate the first box in the
+  // positive octant. Changing its world coordinates
+&nbsp;&nbsp;// from [0, boxedWorldDimen) to 
+  // [-boxedWorldDimen / 2.0, boxedWorldDimen / 2.0)
+&nbsp;&nbsp;float translation = -boxedWorldDimen / 2.0;
+&nbsp;&nbsp;vec3 ray = rayPos - translation;
+
+&nbsp;&nbsp;vec3 repeatedPos = mod(ray, boxedWorldDimen);
+&nbsp;&nbsp;repeatedPos += translation;
+&nbsp;&nbsp;repeatedPos *= 3.0;
+ &nbsp;float dist = sdCube(repeatedPos / 0.9) * 0.9;
+&nbsp;&nbsp;dist /= 3.0;
+  float sdIntersection = max(dist, boundingBox);
+&nbsp;&nbsp;return sdIntersection;
+}</code></pre>
+          <img class="img-fluid rounded" src="https://substack-post-media.s3.amazonaws.com/public/images/d2789e72-338a-4309-a5c2-5858a697c08f_1600x900.png"><br><br>
+          <p>And there you have it! Exactly what we want. The most boring Rubik’s Cube you’ve ever seen. And a perfect
+          start
+          to
+          our Sponge!</p>
+          <p>You might already have guessed it, but with what we have now, we’re very close to our second iteration of the
+          Menger
+          Sponge! Let us use our stacked boxed worlds to create crosses instead of cubes! Each one third the width of
+          our
+          boxed
+          worlds (and one ninth the width of our entire sponge).</p>
+          <pre><code>float sdTwentySevenCrossesBound(vec3 rayPos) {
+&nbsp;&nbsp;const float oneThird = 1.0 / 3.0;
+  const float cubeWidth = 2.0;
+&nbsp;&nbsp;float boundingBox = sdCube(rayPos);
+&nbsp;&nbsp;float boxedWorldDimen = cubeWidth * oneThird;
+&nbsp;&nbsp;float translation = -boxedWorldDimen / 2.0;
+&nbsp;&nbsp;vec3 ray = rayPos - translation;
+&nbsp;&nbsp;vec3 repeatedPos = mod(ray, boxedWorldDimen);
+&nbsp;&nbsp;repeatedPos += translation;
+&nbsp;&nbsp;repeatedPos *= 3.0;
+&nbsp;&nbsp;float dist = sdCross(repeatedPos / oneThird) * oneThird;
+&nbsp;&nbsp;dist /= 3.0;
+  float sdIntersection = max(dist, boundingBox);
+&nbsp;&nbsp;return sdIntersection;
+}</code></pre>
+          <img class="img-fluid rounded" src="https://substack-post-media.s3.amazonaws.com/public/images/0896bfe0-9265-40d8-9711-bec76e4ceb46_1600x900.png"><br><br>
+          <p>Can you see where this is going?</p>
+          <p>All we need to do is unbound the crosses from our bounding box, as the visual help is no longer needed, and
+          then
+          subtract what we have from our first iteration of the Menger Sponge.</p>
+          <pre><code>float sdMengerSpongeIteration2(vec3 rayPos) {
+  const float cubeWidth = 2.0;
+&nbsp;&nbsp;float menger1 = sdMengerSpongeIteration1(rayPos);
+&nbsp;&nbsp;float boxedWorldDimen = cubeWidth / 3.0;
+&nbsp;&nbsp;float translation = -boxedWorldDimen / 2.0;
+&nbsp;&nbsp;vec3 ray = rayPos - translation;
+&nbsp;&nbsp;vec3 repeatedPos = mod(ray, boxedWorldDimen);
+&nbsp;&nbsp;repeatedPos += translation;
+&nbsp;&nbsp;repeatedPos *= 3.0;
+&nbsp;&nbsp;float crossesDist = sdCross(repeatedPos * 3.0) / 3.0;
+&nbsp;&nbsp;crossesDist /= 3.0;
+  float sdSubtraction = max(menger1, -crossesDist);
+  return sdSubtraction;
+}</code></pre>
+          <img class="img-fluid rounded" src="https://substack-post-media.s3.amazonaws.com/public/images/d4b18f96-2b86-49fa-8d59-b62da2fe919d_1600x900.png"><br><br>
+          <p>Now we’re really getting somewhere!!</p>
+          <h3>Menger Sponge: Iteration N</h3>
+          <p>Now that we have two iterations of the Menger Sponge, let us see if we can find a single algorithm that will
+          create
+          both iterations. The way I am going to approach this problem will start with a little intuition. I will
+          attempt
+          to
+          describe the best I can where these feelings come from.</p>
+          <p>There seems to be a lot of necessary computation involved in creating those 27 crosses for Iteration #2. For
+          instance, the mod operator seems like it would be incredibly difficult (impossible?) to remove. Whereas
+          creating
+          just
+          the one cross for Iteration #1 felt very easy in comparison. I see a potential easier path forward in creating
+          an
+          “over-complicated” Iteration #1 using logic very close to Iteration #2. With the hope being that this may lead
+          to a
+          more generic algorithm that will help us produce an Nth iteration of the Menger Sponge.</p>
+          <pre><code>float sdOneCrossOvercomplicatedBound(vec3 rayPos) {
+  const float oneThird = 1.0 / 3.0;
+  const float cubeWidth = 2.0;
+  float boundingBox = sdCube(rayPos);
+
+  // boxed world as big as the box
+  // division by 1 for illustrative purposes
+  float boxedWorldDimen = cubeWidth / 1.0;
+
+  // Translate origin of bounded space to align with origin of space
+  float translation = -boxedWorldDimen / 2.0;
+  vec3 ray = rayPos - translation;
+
+  // Create infinite boxes the same width of our sponge
+  vec3 repeatedPos = mod(ray, boxedWorldDimen);
+
+  // Adjust our coordinate system in the boxed world
+  // to have a range of [-boxedWorldDimen/2.0, boxedWorldDimen/2.0)
+  // placing the origin in the center
+  repeatedPos += translation;
+
+  // Stretch space to [-1.0, 1.0)
+  // [Illustrative purposes, No stretching is needed]
+  repeatedPos *= 1.0; 
+
+  float crossDist = sdCross(repeatedPos / oneThird) * oneThird;
+
+&nbsp;&nbsp;// Acquire actual distance with correction to prev stretch
+  // [Illustrative purposes, No correction is needed]
+  crossDist /= 1.0;
+
+  float sdIntersection = max(boundingBox, crossDist);
+  return sdIntersection;
+}</code></pre>
+          <p>That over-complicated cross bound gives us the following.</p>
+          <img class="img-fluid rounded" src="https://substack-post-media.s3.amazonaws.com/public/images/308306b2-43b8-4965-9f5a-a33083b6f961_1600x900.png"><br><br>
+          <p>Subtract it from our full sized box to create the 1st iteration! We’re definitely getting somewhere. :)</p>
+          <pre><code>float sdMengerSpongeFirstIterationOvercomplicated(vec3 rayPos) {
+&nbsp;&nbsp;float crossDist = sdOneCrossOvercomplicatedUnbound(rayPos);
+&nbsp;&nbsp;float spongeBox = sdBox(rayPos, vec3(halfBoxDimen));
+  float sdSubtraction = max(spongeBox, -crossDist);
+  return sdSubtraction;
+}</code></pre>
+          <img class="img-fluid rounded" src="https://substack-post-media.s3.amazonaws.com/public/images/6ed94b4e-9a8c-4f2e-840c-de8b53632189_1600x900.png"><br><br>
+          <p>The differences between creating 1 cross and 27 crosses are fairly limited. The lines that differ are the
+          following:
+          </p>
+          <ol>
+            <li>
+              <p>Determining the size of the “stacked box worlds”</p>
+            </li>
+            <li>
+              <p>Scaling (stretching) our the coordinate system of our boxed worlds to match the same range of the whole
+              sponge
+              </p>
+            </li>
+            <li>
+              <p>Un-stretching our signed distance to compensate the scaling of the boxed world coordinate system.</p>
+            </li>
+          </ol>
+          <p>These are the interesting spots of our SDF that we should focus on to find an algorithm that calculates the
+          distance
+          to the Nth iteration of a Menger Sponge.</p>
+          <pre><code>// extra argument for number of iterations
+float sdMengerSponge(vec3 rayPos, int numIterations) {
+  const float cubeWidth = 2.0;
+  const float oneThird = 1.0 / 3.0;
+  float spongeCube = sdCube(rayPos);
+  float mengerSpongeDist = spongeCube;
+
+  float scale = 1.0;
+  for(int i = 0; i &lt; numIterations; ++i) {
+    // #1 determine repeated box width
+    float boxedWidth = cubeWidth / scale;
+
+    float translation = -boxedWidth / 2.0;
+    vec3 ray = rayPos - translation;
+    vec3 repeatedPos = mod(ray, boxedWidth);
+    repeatedPos += translation;
+
+    // #2 scale coordinate systems from 
+    // [-1/scale, 1/scale) -&gt; to [-1.0, 1.0)
+    repeatedPos *= scale;
+
+    float crossesDist = sdCross(repeatedPos / oneThird) * oneThird;
+
+    // #3 Acquire actual distance by un-stretching
+    crossesDist /= scale;
+
+    mengerSpongeDist = max(mengerSpongeDist, -crossesDist);
+
+    scale *= 3.0;
+  }
+  return mengerSpongeDist;
+}</code></pre>
+          <img class="img-fluid rounded" src="https://substack-post-media.s3.amazonaws.com/public/images/968f777c-67fc-4e3c-aa9e-c8be909cc850_1600x900.png"><br><br>
+          <p>Ain’t she a beaut.</p>
+          <p>If you find this interesting at all, please dive into any of the following additional resources. There are
+          certainly
+          optimizations and other incredibly fun things you can do with ray marching and SDFs. This is really only the
+          beginning. Cheers!</p>
+          <h4>Sources:</h4>
+          <ul>
+            <li>
+              <p><a href="https://iquilezles.org/articles/distfunctions/">Distance Functions by Inigo Quilez</a></p>
+            </li>
+            <li>
+              <p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/mod.xhtml">OpenGL mod reference</a>
+              </p>
+            </li>
+            <li>
+              <p><a href="https://youtu.be/PGtv-dBi2wE">Ray Marching For Dummies by The Art of Code on YouTube</a></p>
+            </li>
+            <li>
+              <p><a href="https://youtu.be/svLzmFuSBhk">Hot To Make 3D Fractals by CodeParade on YouTube</a></p>
+            </li>
+            <li>
+              <p><a href="http://jamie-wong.com/2016/07/15/ray-marching-signed-distance-functions/">Ray Marching And
+                Signed
+                Distance Functions by Jamie Wong</a></p>
+            </li>
+            <li>
+              <p><a
+                href="http://hugi.scene.org/online/hugi37/hugi%2037%20-%20coding%20adok%20on%20ray%20casting,%20ray%20tracing,%20ray%20marching%20and%20the%20like.htm">On
+                ray casting, ray tracing, ray marching and the like by Adok</a></p>
+            </li>
+          </ul>
+          <h4>Mirror:</h4>
+          <ul>
+            <li>
+              <p><a href="https://connorahaskins.substack.com/p/ray-marching-menger-sponge-breakdown">Substack</a></p>
+            </li>
+          </ul>
+        </div><!-- /.colum -->
+      </div><!-- /.row -->
+    </div><!-- /.container -->
+
+    <div style="height: 2em;"></div>
+
+    <!-- Bootstrap core JavaScript -->
+    <script src="vendor/jquery/jquery.min.js"></script>
+    <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="script/dropdown.js"></script>
+
+  </body>
+
 </html>

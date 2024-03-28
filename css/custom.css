@@ -55,6 +55,18 @@
 }
 
 pre {
-  padding: 2em;
+  padding: 1em;
   background-color: #eef;
+}
+
+code {
+  color: #000000;
+}
+
+ul {
+  padding-left: 1.5em;
+}
+
+ol {
+  padding-left: 1.5em;
 }
