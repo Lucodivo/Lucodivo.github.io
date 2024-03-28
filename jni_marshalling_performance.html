@@ -157,7 +157,7 @@
           <p>Three Android devices are used:</p>
           <ul>
             <li>
-              <p>Motorola Z Play</p>
+              <a href="https://www.gsmarena.com/motorola_moto_z_play-8310.php"><p>Motorola Z Play</p></a>
               <ul>
                 <li>
                   <p>Released September 2016</p>
@@ -174,7 +174,7 @@
               </ul>
             </li>
             <li>
-              <p>Samsung Galaxy S10+</p>
+              <a href="https://www.gsmarena.com/samsung_galaxy_s10+-9535.php"><p>Samsung Galaxy S10+</p></a>
               <ul>
                 <li>
                   <p>Released February 2019</p>
@@ -186,12 +186,12 @@
                   <p>8GB RAM</p>
                 </li>
                 <li>
-                  <p>Snapdragon 855</p>
+                  <a href="https://en.wikichip.org/wiki/qualcomm/snapdragon_800/855"><p>Snapdragon 855</p></a>
                 </li>
               </ul>
             </li>
             <li>
-              <p>Samsung Galaxy A23 5G</p>
+              <a href="https://www.gsmarena.com/samsung_galaxy_a23_5g-11736.php"><p>Samsung Galaxy A23 5G</p></a>
               <ul>
                 <li>
                   <p>Released Sept 2022</p>
@@ -558,7 +558,7 @@ int sumC(int* body, int size){
           <img class="img-fluid rounded" src="https://substack-post-media.s3.amazonaws.com/public/images/861a375f-de21-4175-9cae-243c9b3ad42b_1274x170.png"><br><br>
           <p>And the cache sizes on the Samsung Galaxy S10+…</p>
           <img class="img-fluid rounded" src="https://substack-post-media.s3.amazonaws.com/public/images/c38eb9e5-c952-4ff8-9bea-6a74c9dad9cf_1161x173.png"><br><br>
-          <p>The L1 cache is per-core. The L2 cache is per-core as well, but there are instances where the L2 cache is shared across an entire CPU cluster. And, as shown above, for this device the L2 cache is not the same size for all clusters. The L3 cache and main memory (RAM) are shared amongst the whole system (all CPU clusters/cores, GPU, DSP, processes). </p>
+          <p>The cache on this device isn't unusual for a heterogeneous multi-core processor. The L1 cache is per-core. The L2 cache is per-core as well, but <a href="https://www.computerenhance.com/p/the-apple-m-series-gofetch-attack">there are microarchitectures where the L2 cache is shared across an entire CPU cluster</a>. The L2 cache sizes also vary across clusters. The L3 cache is shared among all CPU clusters/cores. And main memory (RAM) is shared amongst the whole system (CPU, GPU, DSP, other processors on SoC). </p>
           <p>So what percentage of our caches is the integer array consuming?</p>
           <img class="img-fluid rounded" src="https://substack-post-media.s3.amazonaws.com/public/images/2f9cb4ad-4860-463b-b79f-1e7b46674f21_1330x335.png"><br><br>
           <p>As shown above, our L1 data cache serves us perfectly well all the way up to ten thousand integers. At
@@ -890,6 +890,9 @@ numbers.sort()</code></pre>
                   href="https://play.google.com/store/apps/details?id=flar2.devcheck&amp;hl=en_US&amp;gl=US">DevCheck
                   Device &amp;
                   System Info by flar2</a></p>
+              </li>
+              <li>
+                <p><a href="https://en.wikichip.org/wiki/qualcomm/snapdragon_800/855">WikiChip</a></p>
               </li>
             </ul>
             <h3>The Code</h3>
