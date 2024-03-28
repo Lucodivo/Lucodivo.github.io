@@ -53,3 +53,8 @@
         text-align: left;
     }
 }
+
+pre {
+  padding: 2em;
+  background-color: #eef;
+}
