@@ -81,7 +81,7 @@
                   <p>Memory management for better cache performances.</p>
                   <ul>
                     <li>
-                      <p>Despite ART being a memory managed environment, you can still intelligently manage memory usage
+                      <p>Despite ART being a memory-managed environment, you can still intelligently manage memory usage
                       in
                       Kotlin. However, not as easily, fully, or explicitly.</p>
                     </li>
@@ -129,7 +129,7 @@
           reduce *how
           often* they send data to one another. My question here is the simplest I could think of that would provide
           helpful
-          insight to the cost of marshalling data across the JNI:</p>
+          insight into the cost of marshalling data across the JNI:</p>
           <h3>The Experiment</h3>
           <p>To understand the cost of a JNI call, we will measure the performance of a single round trip through the JNI.
           Beginning in Kotlin on ART, calling out through the JNI to a native C++ function, and returning back through
@@ -265,13 +265,13 @@
               </ul>
             </li>
           </ul>
-          <p>Before testing was performed, the devices were restarted, put on airplane mode, setup with a fresh install of
+          <p>Before testing was performed, the devices were restarted, put on airplane mode, set up with a fresh install of
           the
           test app, disconnected from the computer, and plugged into a charger. Results are pulled from a .csv file that
           is
           written to external storage after all testing is performed.</p>
           <p>For profiling, it makes little sense to use different methods for C++ profiling and Kotlin profiling. So, for
-          consistent timing, the most obvious option for a high resolution timer is <code>System.nanoTime()</code> from
+          consistent timing, the most obvious option for a high-resolution timer is <code>System.nanoTime()</code> from
           Kotlin.
           A second option is creating a JNI wrapper around <code>clock_gettime()</code> from C++. An honest attempt at
           using
@@ -282,7 +282,7 @@
           (Already
           learning the costs before any test results came in!)
           </p>
-          <p>The C++ library is loaded in the the <code>init{} </code>of the custom Application class of the project to
+          <p>The C++ library is loaded in the <code>init{} </code>of the custom Application class of the project to
           ensure it
           is ready at the earliest possible moment. Tests are run inside of a Kotlin coroutine, launched with
           Dispatchers.Default for CPU-bound work.</p>
@@ -290,7 +290,7 @@
           <h4><code>System.nanoTime()</code> Timer Overhead</h4>
           <p>The overhead of the timing method is calculated with two consecutive calls to Java's
           <code>System.nanoTime()</code>
-          and is simply the difference of these two values.</p>
+          and is simply the difference between these two values.</p>
           <img class="img-fluid rounded" src="https://substack-post-media.s3.amazonaws.com/public/images/bf8c5d71-5cfe-40d9-8624-a86fc143669d_975x218.png"><br><br>
           <p>After looking at these times, it's clear they are rough measurements but they are certainly good enough to be
           useful.
@@ -302,7 +302,7 @@
           <p>To answer this question completely, there are three, performance-related, variations in need of testing.
           Kotlin on
           Android offers two special annotations for JNI call performance, <code>@FastNative</code> and
-          <code>@CriticalNative</code>. In short <code>@FastNative</code> experience “faster JNI transitions from
+          <code>@CriticalNative</code>. In short <code>@FastNative</code> experiences “faster JNI transitions from
           managed code
           to the native code and back” and “functions that access the managed heap or call managed code also have faster
           internal transitions”. The cost of which is that “garbage collection cannot suspend the thread for essential
@@ -371,9 +371,9 @@ external fun intArrayNopC(nums: IntArray)</code></code></pre>
           integer array argument. Compared to the no-op &amp; no-argument JNI calls, there is certainly a cost to simply
           acquire
           an integer array as a parameter. And this cost seems to rise as the integer array gets bigger. In some
-          comparisons the
+          comparisons, the
           cost of this no-op is convincingly tripling.</p>
-          <p>But, on every device, the additional cost drops off when the array parameters grows to ten thousand elements
+          <p>But, on every device, the additional cost drops off when the array parameters grow to ten thousand elements
           or more.
           It seems it is cheaper to send one million integers than it is to send one. No matter the size of the array,
           the same
@@ -388,7 +388,7 @@ external fun intArrayNopC(nums: IntArray)</code></code></pre>
           copy of
           the array or if the <code>jint*</code> returned points to the actual memory that ART uses to store the
           underlying data
-          of the Kotlin <code>IntArray</code>. Investigating how this parameter changes with respect to different sized
+          of the Kotlin <code>IntArray</code>. Investigating how this parameter changes with respect to different-sized
           arrays
           brings light to the unexpected results seen above. </p>
           <p>By slightly modifying the code from above, we can return that boolean for analysis.</p>
@@ -468,12 +468,12 @@ val sum = intArray.sum()</code></code></pre>
           <img class="img-fluid rounded" src="https://substack-post-media.s3.amazonaws.com/public/images/90a6a832-2162-44d9-881c-a8ae7635a7d8_1449x941.png"><br><br>
           <p>Individual performance readings of this test seem to shine a light on the imperfections of the testing
           strategy but I
-          think as whole it tells a very convincing story. </p>
+          think as a whole it tells a very convincing story. </p>
           <p>It seems that for just about any size integer array, the native code is either significantly faster or just
           about
           breaking even. We’ve gone over what might be slowing it down at the small end (extra array copy &amp; JNI
           transition
-          cost). But, why does performance also seem to drop at the large end? There’s a couple things we need to
+          cost). But, why does performance also seem to drop at the large end? There are a couple of things we need to
           investigate
           first. For starters, why was is C faster at all?</p>
           <p>To answer that, we’ll dive into some assembly!</p>
@@ -563,7 +563,7 @@ int sumC(int* body, int size){
           <img class="img-fluid rounded" src="https://substack-post-media.s3.amazonaws.com/public/images/2f9cb4ad-4860-463b-b79f-1e7b46674f21_1330x335.png"><br><br>
           <p>As shown above, our L1 data cache serves us perfectly well all the way up to ten thousand integers. At
           100,000
-          integers the L1 cache can no longer store the array. Nor can the L2 on one of the lower end cores. And by one
+          integers the L1 cache can no longer store the array. Nor can the L2 on one of the lower-end cores. And by one
           million
           integers, not even our L3 cache is big enough.</p>
           <p>By one million integers, our iterative tests are not priming our caches <em>at all</em>. In fact, due to the
@@ -575,7 +575,7 @@ int sumC(int* body, int size){
           integers. How
           does Kotlin manage to catch up? I mean, regardless of how hot the cache is, compiled C is still crunching 8
           integer
-          adds for ever 1 integer add in Kotlin, right? </p>
+          adds for every 1 integer add in Kotlin, right? </p>
           <p>Well.. effectively, no. Regardless of the cache, C is still adding 8 integers per loop, that is true. And
           Kotlin is
           still only adding 1 integer per loop, that is also true. But the data for these additions, the eight integers
@@ -598,7 +598,7 @@ int sumC(int* body, int size){
             takes only 10 cycles to do 8 integer adds. That means after each cache line is received it takes C 20 cycles
             to
             process. Let’s also say Kotlin takes 10 cycles to do just 1 integer add. That means after each cache line is
-            receive,
+            received,
             it takes Kotlin a whopping 160 cycles to process. If only processing 64 bytes, C takes s total of 220 cycles
             and
             Kotlin takes a total of 360 cycles. But the additions and the fetching of the next cache line can actually be
@@ -608,13 +608,13 @@ int sumC(int* body, int size){
             line. Then
             it simultaneously requests the next cache line and starts processing the first cache line. After 20 cycles it
             finishes
-            processing the first cache line. After another 180 cycles it receives the second cache line. Finally, after
+            processing the first cache line. After another 180 cycles, it receives the second cache line. Finally, after
             another 20
-            cycles, it finishes processing the second cache line for a total of 420 cycles. Now lets say we want to
+            cycles, it finishes processing the second cache line for a total of 420 cycles. Now let's say we want to
             process 64,000
-            bytes (1,000 cache lines) of data? Given the logic described perviously, C would complete in 200,020 cycles
+            bytes (1,000 cache lines) of data. Given the logic described previously, C would complete in 200,020 cycles
             and Kotlin
-            would complete in 200,160 cycles. With C being a a mere 0.07% faster. The speed of acquiring the data from RAM
+            would complete in 200,160 cycles. With C being a mere 0.07% faster. The speed of acquiring the data from RAM
             to CPU
             registers has suddenly become a choke point. </p>
             <img class="img-fluid rounded" src="https://substack-post-media.s3.amazonaws.com/public/images/0b423f00-c180-4667-8ea8-e15b789f026a_2480x3157.png"><br><br>
@@ -653,9 +653,9 @@ val copy = intArray.copyOf()</code></code></pre>
             all devices.</p>
             <p>Since this test is about making a second copy, the working memory for the test has doubled. This means that
             if the
-            compiled C code utilizes vector operations, like the summation test did, it will be hindered by a colder cache
+            compiled C code utilizes vector operations like the summation test did, it will be hindered by a colder cache
             at
-            smaller sized array arguments. This means that the L1D$ is already flooded by 10,000 integers and the L2 cache
+            smaller-sized array arguments. This means that the L1D$ is already flooded by 10,000 integers and the L2 cache
             is
             guaranteed to be flooded by 100,000 integers.</p>
             <h4>Incrementing Int Array Elements</h4>
@@ -688,7 +688,7 @@ val incrementedIntArray: List&lt;Int&gt; = intArray.map { it + 1 }</code></code>
             compares, as it
             is not an uncommonly used method. And it seemed worthy of presenting. For some reason, it takes hardly a whole
             frame
-            of a 60fps application to create a incremented array of a million integers. We saw earlier that copying an
+            of a 60fps application to create an incremented array of a million integers. We saw earlier that copying an
             array isn’t
             nearly that expensive on either side of the JNI barrier. And we see here that simply adding 1 to all elements
             does not
@@ -704,9 +704,9 @@ val incrementedIntArray: List&lt;Int&gt; = intArray.map { it + 1 }</code></code>
             creating/updating of an <code>ArrayList&lt;Int&gt;</code> has different (and more expensive) costs than an
             <code>IntArray</code>.
             </p>
-            <p>That aside, results are interesting. For starters, the tests at the small end run so fast that they are at
+            <p>That aside, the results are interesting. For starters, the tests at the small end run so fast that they are at
             the limits
-            of the timer and are essentially garbage. They also further demonstrates that the return values of
+            of the timer and are essentially garbage. They also further demonstrate that the return values of
             <code>system.nanoTime()</code> on the Samsung devices can only provide timestamps in ~52 nanosecond
             increments.
             </p>
@@ -716,9 +716,8 @@ val incrementedIntArray: List&lt;Int&gt; = intArray.map { it + 1 }</code></code>
             array.
             </p>
             <h4>Sorting an Array</h4>
-            <p>This last experiment is not a perfect apples to apples comparison but one that shows the potential of
-            comparing of
-            real work done on a varying sized integer array. I have chosen to use the default sorting algorithms available
+            <p>This last experiment is not a perfect apples-to-apples comparison but one that shows the potential of
+            comparing real work done on a varying-sized integer array. I have chosen to use the default sorting algorithms available
             on each
             platform. Specifically, <code>std::sort()</code> in C++ and <code>IntArray.sort()</code> in Kotlin.
             <code>std::sort()</code><a href="https://en.wikipedia.org/wiki/Introsort"> uses a hybrid sorting algorithm
@@ -744,7 +743,7 @@ numbers.sort()</code></pre>
             <img class="img-fluid rounded" src="https://substack-post-media.s3.amazonaws.com/public/images/8c6467f4-ef99-4a15-af5e-e6746c1b5542_1435x815.png"><br><br>
             <p>This test is far from perfect but it <em>is</em> another useful data point amongst the others. It is an
             example of
-            the performance benefits one may acquire utilizing C for heavier work loads on large amounts of data. None of
+            the performance benefits one may acquire utilizing C for heavier workloads on large amounts of data. None of
             the
             other test results maintain as strong of a performance multiplier at the larger end of the spectrum as these
             sort
@@ -760,12 +759,12 @@ numbers.sort()</code></pre>
             memory
             costs. Clang may compile your C code to use vector operations that can help produce incredible performance
             gains.
-            Although, vector operations may struggle to provide benefit when the cache is not primed and ready or is
+            Although, vector operations may struggle to provide benefits when the cache is not primed and ready or is
             utilized
             poorly based on the structure of a specific solution. </p>
             <p>These iterative tests, though highly flawed, have aided in analyzing the cost of sending various sizes of
             integer
-            arrays data across the JNI. Improving the understanding of the impact JNI communication has on potential
+            array data across the JNI. Improving the understanding of the impact JNI communication has on potential
             performance
             gains. The results seem to indicate that the larger the integer arrays, the less chance there is for any
             significant
@@ -804,16 +803,16 @@ numbers.sort()</code></pre>
               <li>
                 <p>The iterative performance testing approach will have the cache in an ideal state for most tests performed
                 in this
-                article. Cache misses will surely be much higher when ran alongside the rest of a codebase and may greatly
+                article. Cache misses will surely be much higher when run alongside the rest of a codebase and may greatly
                 impact
-                real world results. </p>
+                real-world results. </p>
               </li>
               <li>
-                <p>All tests are single threaded. Multi-threading could boost performance of both native and managed code.
+                <p>All tests are single-threaded. Multi-threading could boost the performance of both native and managed code.
                 </p>
               </li>
               <li>
-                <p>For some number crunching, it could be a waste of time going any route other than GPU compute with
+                <p>For some number crunching, it could be a waste of time to go any route other than GPU compute with
                 Vulkan, OpenGL
                 ES, OpenCL, etc. Some of which may already have accessible wrappers for Kotlin.</p>
               </li>
@@ -841,8 +840,8 @@ numbers.sort()</code></pre>
                   library</a> could be valuable as microbenchmark tools.</p>
               </li>
               <li>
-                <p>Kotlin Native uses an LLVM-based back-end, just as the Clang C compiler. Implying that it may have
-                potential to
+                <p>Kotlin Native uses an LLVM-based back-end, just like the Clang C compiler. Implying that it may have
+                the potential to
                 offer the same or similar results to compiled C/C++. However, Kotlin Native does not circumvent the JNI.
                 It will
                 still have to communicate to managed code through the JNI just as C/C++. Paying the same marshalling and
@@ -850,7 +849,7 @@ numbers.sort()</code></pre>
                 costs.</p>
               </li>
               <li>
-                <p>Intelligently using SIMD through Neon/SSE/AVX extensions may give better results for C++. Though, as
+                <p>Intelligently using SIMD through Neon/SSE/AVX extensions may give better results for C++. Howerever, as
                 shown, the
                 Clang compiler already utilizes ARM's vector instructions quite nicely.</p>
               </li>
