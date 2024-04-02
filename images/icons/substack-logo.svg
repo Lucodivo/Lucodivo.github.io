@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   version="1.0"
+   width="606"
+   height="606"
+   viewBox="0 0 606 606"
+   preserveAspectRatio="xMidYMid meet"
+   id="svg1"
+   sodipodi:docname="substack-logo.svg"
+   inkscape:version="1.3.2 (091e20e, 2023-11-25, custom)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs1" />
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="3.120462"
+     inkscape:cx="302.83977"
+     inkscape:cy="303"
+     inkscape:window-width="3840"
+     inkscape:window-height="2126"
+     inkscape:window-x="-11"
+     inkscape:window-y="-11"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg1" />
+  <path
+     style="fill:#000000;stroke:none;fill-opacity:1"
+     d="M35 4L35 75L564 75L564 4L35 4M35 139L35 211L564 211L564 139L35 139M35 274L35 605C56.6208 598.76 78.3422 581.827 98 570.86L230 497.14C246.343 488.022 262.731 478.968 279 469.719C284.318 466.696 293.313 459.172 299.576 459.286C305.748 459.399 314.711 466.977 320 469.999C335.238 478.708 350.615 487.245 366 495.694C412.513 521.239 458.488 547.761 505 573.306C522.985 583.183 543.997 600.423 564 605L564 274L35 274z"
+     id="path1" />
+</svg>
