@@ -123,10 +123,20 @@
               <p>Go back to step 1, using the new position of our ray</p>
             </li>
           </ol>
+          <h3>What is a Menger Sponge?</h3>
+          <p>A <a href="https://en.wikipedia.org/wiki/Menger_sponge">Menger Sponge</a> is a 3D fractal.</p>
+          <p><img class="img-fluid rounded" src="https://substack-post-media.s3.amazonaws.com/public/images/cf067a08-6778-49c0-a40a-3a8a827afac1_620x465.png" alt="wikimedia commons: menger sponge"></p>
+          <p>It is constructed by:
+          <ol>
+            <li>Cutting a cube into 3x3x3 equal cubes</li>
+            <li>Removing the center cube and the center cube of each face</li>
+            <li>Repeat for all remaining cubes</li>
+          </ol></p>
+          <p><img class="img-fluid rounded" src="https://substack-post-media.s3.amazonaws.com/public/images/0f50c4df-003a-4c03-b0d5-43d9518dae92_800x228.jpeg" alt="wikimedia commons: menger sponge (Level 0-3)"></p>
           <h3>Before We Continue…</h3>
           <p>I do attempt to explain most things but I will not be explaining some concepts like vectors or coordinate
           systems. If
-          you notice anything that went unexplained, please use your favorite search engine, LLM, or the resources at
+          you notice anything that went unexplained, please ask, use your favorite search engine, LLM, or the resources at
           the
           end of
           this article to find other wonderful educational media on the topics.</p>
@@ -1509,6 +1519,10 @@ float sdMengerSponge(vec3 rayPos, int numIterations) {
                 href="http://hugi.scene.org/online/hugi37/hugi%2037%20-%20coding%20adok%20on%20ray%20casting,%20ray%20tracing,%20ray%20marching%20and%20the%20like.htm">On
                 ray casting, ray tracing, ray marching and the like by Adok</a></p>
             </li>
+            <li>
+              <p><a
+                href="https://en.wikipedia.org/wiki/Menger_sponge">Menger Sponge on Wikipedia</a></p>
+            </li>
           </ul>
           <h4>Mirrors / Discussions / Features:</h4>
           <ul>
@@ -1517,6 +1531,9 @@ float sdMengerSponge(vec3 rayPos, int numIterations) {
             </li>
             <li>
               <p><a href="https://www.reddit.com/r/GraphicsProgramming/comments/1bq34eo/ray_marching_menger_sponge_breakdown/">Reddit /r/GraphicsProgramming</a></p>
+            </li>
+            <li>
+              <p><a href="https://news.ycombinator.com/item?id=39865458#39919430">Hacker News</a></p>
             </li>
             <li>
               <p><a href="https://www.jendrikillner.com/post/graphics-programming-weekly-issue-333/">Graphics Programming Weekly: Issue 333</a></p>
