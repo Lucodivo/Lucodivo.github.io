@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-
   <head>
-
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta name="description" content="Ray marching is an alternative rendering method to rasterisation and ray tracing. Utilize ray marching to create a simply fractal, the Menger Sponge.">
@@ -10,37 +8,22 @@
 
     <title>Ray Marching: Menger Sponge Breakdown</title>
 
-    <!-- Bootstrap core CSS -->
     <link href="vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
     <link rel="icon" type="image/x-icon" href="/images/favicon.png">
 
-    <!-- Custom styles for this template -->
     <link href="css/blog-post.css" rel="stylesheet">
     <link href="css/custom.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 
-    <!-- Bootstrap core JavaScript -->
     <script src="vendor/jquery/jquery.min.js"></script>
     <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
     <script src="script/dropdown.js"></script>
 
+    <script src="header.js"></script>
   </head>
-
   <body style="padding-bottom:2em;">
-
-    <div class="topnav" id="myTopnav">
-      <a href="index.html" class="active">Connor A. Haskins</a>
-      <a href="blog.html">Blog</a>
-      <a href="index.html">About</a>
-      <a href="javascript:void(0);" class="icon" onclick="myFunction()">
-        <i class="fa fa-bars"></i>
-      </a>
-    </div>
-
-    <!-- Page Content -->
     <div class="container">
       <div class="row">
-        <!-- Post Content Column -->
         <div class="col-lg-12">
           <p>
           <h1 class="card-title">Ray Marching: Menger Sponge Breakdown</h1>
@@ -1539,10 +1522,9 @@ float sdMengerSponge(vec3 rayPos, int numIterations) {
               <p><a href="https://www.jendrikillner.com/post/graphics-programming-weekly-issue-333/">Graphics Programming Weekly: Issue 333</a></p>
             </li>
           </ul>
-        </div><!-- /.colum -->
-      </div><!-- /.row -->
-    </div><!-- /.container -->
-
+        </div>
+      </div>
+    </div>
     <script src="https://utteranc.es/client.js"
         repo="Lucodivo/Lucodivo.github.io"
         issue-term="title"
@@ -1551,7 +1533,5 @@ float sdMengerSponge(vec3 rayPos, int numIterations) {
         crossorigin="anonymous"
         async>
     </script>
-
   </body>
-
 </html>
