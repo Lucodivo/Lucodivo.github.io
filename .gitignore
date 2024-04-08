@@ -1,3 +1,5 @@
 /icons
 /.idea
 /archive
+/node_modules/
+/package*
