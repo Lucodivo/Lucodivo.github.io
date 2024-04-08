@@ -3,8 +3,9 @@ import { drawScene } from "./draw_scene.js"
 
 main();
 
+window.onresize = function(){ location.reload() }
+
 function main() {
-  window.onresize = function(){ location.reload() }
   const canvas = document.querySelector("#glcanvas");
   // Make it visually fill the positioned parent
   canvas.style.width ='100%';
@@ -135,7 +136,7 @@ function main() {
 
   const buffer = squareBuffers(gl);
 
-  drawScene(gl, programInfo, buffer, canvas);
+  drawScene(gl, programInfo, buffer);
 }
 
 function initShaderProgram(gl, vsSource, fsSource) {
