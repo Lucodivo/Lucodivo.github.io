@@ -1,4 +1,4 @@
-function drawScene(gl, programInfo, buffers) {
+function drawScene(gl, programInfo, buffers, frameInput) {
 
   gl.clearColor(0.0, 0.0, 0.0, 1.0);
   gl.clearDepth(1.0);
@@ -15,7 +15,9 @@ function drawScene(gl, programInfo, buffers) {
   gl.useProgram(programInfo.program);
 
   // Set the shader uniforms
-  gl.uniform2fv(programInfo.uniformLocations.viewportResolution, gl.getParameter(gl.VIEWPORT).slice(2,5));
+  gl.uniform2fv(programInfo.uniformLocations.viewportResolution, frameInput.viewportResolution);
+  gl.uniform1f(programInfo.uniformLocations.time, frameInput.time);
+  gl.uniform1f(programInfo.uniformLocations.velocity, frameInput.velocity);
 
   {
     const offset = 0;
