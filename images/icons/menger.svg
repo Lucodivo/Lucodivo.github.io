@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="100mm"
+   height="100mm"
+   viewBox="0 0 100 100"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.3.2 (091e20e, 2023-11-25, custom)"
+   sodipodi:docname="menger.svg"
+   inkscape:export-filename="menger2.png"
+   inkscape:export-xdpi="96"
+   inkscape:export-ydpi="96"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="true"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="3.3692059"
+     inkscape:cx="195.44665"
+     inkscape:cy="192.62699"
+     inkscape:window-width="3840"
+     inkscape:window-height="2126"
+     inkscape:window-x="-11"
+     inkscape:window-y="-11"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg1" />
+  <defs
+     id="defs1" />
+  <path
+     id="menger"
+     style="stroke-width:0.264583"
+     d="M 22.616604 42.877312 L 22.616604 142.87741 L 122.6167 142.87741 L 122.6167 42.877312 L 22.616604 42.877312 z M 33.727554 53.988262 L 44.838503 53.988262 L 44.838503 65.099211 L 33.727554 65.099211 L 33.727554 53.988262 z M 100.62941 53.988262 L 111.74036 53.988262 L 111.74036 65.099211 L 100.62941 65.099211 L 100.62941 53.988262 z M 67.060403 54.06681 L 78.171353 54.06681 L 78.171353 65.17776 L 67.060403 65.17776 L 67.060403 54.06681 z M 55.949453 76.210161 L 89.279718 76.210161 L 89.279718 109.54043 L 55.949453 109.54043 L 55.949453 76.210161 z M 33.727554 87.321111 L 44.838503 87.321111 L 44.838503 98.432061 L 33.727554 98.432061 L 33.727554 87.321111 z M 100.62941 87.321111 L 111.74036 87.321111 L 111.74036 98.432061 L 100.62941 98.432061 L 100.62941 87.321111 z M 33.727554 120.65448 L 44.838503 120.65448 L 44.838503 131.76543 L 33.727554 131.76543 L 33.727554 120.65448 z M 100.62941 120.65448 L 111.74036 120.65448 L 111.74036 131.76543 L 100.62941 131.76543 L 100.62941 120.65448 z M 67.060403 120.73302 L 78.171353 120.73302 L 78.171353 131.84397 L 67.060403 131.84397 L 67.060403 120.73302 z "
+     transform="translate(-22.616604,-42.877311)" />
+</svg>
